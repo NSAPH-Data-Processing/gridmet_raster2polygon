@@ -1,7 +1,7 @@
 defaults:
   - _self_
-  - datapaths.yaml
-  - gridmet.yaml
+  - datapaths: county_fasse
+  - gridmet
   - shapefiles: county   # zcta, county
 
 # == aggregation args
