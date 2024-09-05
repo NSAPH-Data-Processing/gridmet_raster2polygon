@@ -1,0 +1,21 @@
+defaults:
+  - _self_
+  - datapaths.yaml
+  - gridmet.yaml
+  - shapefiles: county   # zcta, county
+
+# == aggregation args
+year: 2020
+var: tmmx  # see the gridmet key in gridmet.yaml for valid options
+downscaling_factor: 4
+
+# == shapefile download args
+polygon_name: ${hydra:runtime.choices.shapefiles}  # overwritten from cmd
+shapefile_year: 2020  # used when running download_shapefiles.py standalone
+
+show_progress: false
+plot_output: false  # plots the first day of each var aggregation for debugging
+
+hydra:
+  run:
+    dir: logs/${now:%Y-%m-%d}/${now:%H-%M-%S}
