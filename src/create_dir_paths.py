@@ -20,9 +20,9 @@ def create_subfolders_and_links(datapath, subfolder_dict, base_path="data"):
                 LOGGER.info(f"Subfolder {subfolder_path} already exists.")
                 continue
             if subfolder_link is not None:
-                # Expand the tilde to the user's home directory
-                expanded_path = os.path.expanduser(subfolder_link)
-                os.symlink(expanded_path, subfolder_path)
+                #convert relative path to absolute path
+                subfolder_link = os.path.abspath(subfolder_link)
+                os.symlink(subfolder_link, subfolder_path)
                 LOGGER.info(f"Created symlink {subfolder_path} -> {subfolder_link}")
             else:
                 os.makedirs(subfolder_path, exist_ok=True)
