@@ -1,0 +1,10 @@
+# ZCTA shapefiles (cartographic boudaries) https://www.census.gov/programs-surveys/geography/guidance/tiger-data-products-guide.html
+2000:
+  url: https://www2.census.gov/geo/tiger/GENZ2010/gz_2010_us_860_00_500k.zip # readme https://www2.census.gov/geo/tiger/GENZ2010/ReadMe.pdf
+  idvar: ZCTA5
+2010:
+  url: https://www2.census.gov/geo/tiger/GENZ2019/shp/cb_2019_us_zcta510_500k.zip # latest ZCTA5CE10 available
+  idvar: ZCTA5CE10
+2020:
+  url: https://www2.census.gov/geo/tiger/GENZ2020/shp/cb_2020_us_zcta520_500k.zip # latest ZCTA5CE20 available (to date)
+  idvar: ZCTA5CE20
