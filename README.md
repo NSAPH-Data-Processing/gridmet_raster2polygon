@@ -66,7 +66,7 @@ You can run the snakemake pipeline described in the Snakefile.
 or run the pipeline:
 
 ```bash
-snakemake --cores 4 --configfile conf/config.yaml
+snakemake --cores 4 
 ```
 
 Plan around 3GB of RAM per core.
