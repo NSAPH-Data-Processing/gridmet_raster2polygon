@@ -18,4 +18,6 @@ dependencies:
     - selenium==4.16.0
     - webdriver_manager==4.0.1
     - wget==3.2
+    - tqdm
+    - ipykernel
 
