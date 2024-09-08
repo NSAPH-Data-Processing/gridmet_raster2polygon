@@ -62,7 +62,7 @@ rule download_gridmet:
     log:
         err="logs/download_gridmet_{var}_{year}.log",
     shell:
-        "python utils/download_gridmet.py year={wildcards.year} var={wildcards.var} 2> {log.err}"
+        "python src/download_gridmet.py year={wildcards.year} var={wildcards.var} 2> {log.err}"
 
 
 
