@@ -17,16 +17,10 @@ def main(cfg):
 
     # download directory
     target_dir = f"data/input/gridmet_rasters"
-    os.makedirs(target_dir, exist_ok=True)  # create directory if it doesn't exist
 
     # make url and target file
     url = cfg.gridmet.url + f"{cfg.var}_{cfg.year}.nc"
     target_file = f"{target_dir}/{cfg.var}_{cfg.year}.nc"
-
-    # skip if file already exists
-    if os.path.exists(target_file):
-        LOGGER.info(f"File exists. Skipping.")
-        return
 
     # download file with wget
     LOGGER.info(f"Downloading...")
