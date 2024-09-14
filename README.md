@@ -66,6 +66,7 @@ You can run the snakemake pipeline described in the Snakefile.
 or run the pipeline:
 
 ```bash
+export PYTHONPATH="."
 snakemake --cores 4 
 ```
 
