@@ -134,7 +134,7 @@ def main(cfg):
 
     # == save output file
     output_filename = f"{cfg.var}_{cfg.year}_{cfg.polygon_name}.parquet"
-    output_path = f"data/output/gridmet_raster2polygon/{output_filename}"
+    output_path = f"data/intermediate/{output_filename}"
     df.to_parquet(output_path)
 
 

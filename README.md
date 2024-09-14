@@ -69,33 +69,24 @@ or run the pipeline:
 snakemake --cores 4 
 ```
 
-Plan around 3GB of RAM per core.
-
 ## Dockerized Pipeline
 
 Create the folder where you would like to store the output dataset.
 
 ```bash 
-mkdir <path>/gridmet_raster2polygon
+mkdir <path>
 ```
 
 ### Pull and Run:
 
 ```bash
 docker pull nsaph/gridmet_raster2polygon
-docker run -v <path>:/app/data/input/gridmet_rasters <path>/gridmet_raster2polygon/:/app/data/output/gridmet_raster2polygon nsaph/gridmet_raster2polygon
-```  
-
-If you are interested in storing the input raw and intermediate data run
-
-```bash
-docker run -v <path>/gridmet_raster2polygon/:/app/data/ nsaph/gridmet_raster2polygon
-```
+docker run -v <path>:/app/data/ nsaph/gridmet_raster2polygon
+``` 
 
 If you want to build your own image use from the Dockerfile int the GitHub repository.
 
 ```bash
 docker build -t <image_name> .
-docker run [...] <image_name>  # replace [...] with the appropriate arguments
 ```
 

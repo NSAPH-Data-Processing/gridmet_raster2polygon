@@ -40,7 +40,7 @@ def get_shapefile_input(wildcards):
 rule all:
     input:
         expand(
-            f"data/output/gridmet_raster2polygon/{{var}}_{{year}}_{shapefiles}.parquet",
+            f"data/intermediate/{{var}}_{{year}}_{shapefiles}.parquet",
             year=years,
             var=vars,
         ),
@@ -73,7 +73,7 @@ rule aggregate_gridmet:
         get_shapefile_input,
         "data/input/gridmet_rasters/{var}_{year}.nc",
     output:
-        f"data/output/gridmet_raster2polygon/{{var}}_{{year}}_{shapefiles}.parquet",
+        f"data/intermediate/{{var}}_{{year}}_{shapefiles}.parquet",
     log:
         f"logs/aggregate_gridmet_{{var}}_{{year}}_{shapefiles}.log",
     params:

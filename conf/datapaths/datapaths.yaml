@@ -3,5 +3,6 @@ input:
   gridmet_rasters: null
   shapefiles: null
 
-output:
-  gridmet_raster2polygon: null
+intermediate: null
+
+output: null
