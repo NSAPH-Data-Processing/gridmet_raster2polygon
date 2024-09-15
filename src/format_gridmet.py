@@ -1,22 +1,59 @@
 import duckdb
+import hydra
+import os
 
-def format_gridmet():
+@hydra.main(config_path="../conf", config_name="config", version_base=None)
+def main(cfg):
+    gridmet_vars = list(cfg.gridmet.variable_key.keys())
     # Load the data
-    conn = duckdb.connect(database=':memory:', read_only=False)
-    conn.execute("CREATE TABLE gridmet (lon FLOAT, lat FLOAT, day DATE, value FLOAT)")
-    conn.execute("COPY gridmet FROM 'data/input/gridmet.csv' (delimiter ',')")
+    conn = duckdb.connect("datapond.db")
 
-    # Compute the downscaling factor
-    downscaling_factor = 1
+    conn.execute(f"""
+        CREATE TABLE gridmet AS 
+            (SELECT 
+                 county, 
+                 day, 
+                 {gridmet_vars[0]} 
+            FROM 
+                'data/intermediate/{gridmet_vars[0]}_{cfg.year}_{cfg.polygon_name}.parquet')
+    """)
+ 
+    # Join all the gridmet variables
+    for var in gridmet_vars[1:]:
+        conn.execute(f"""
+            CREATE OR REPLACE TABLE gridmet_var AS
+                (SELECT 
+                     county, 
+                     day, 
+                     {var} 
+                FROM 
+                    'data/intermediate/{var}_{cfg.year}_{cfg.polygon_name}.parquet')
+        """)
 
-    # Compute the mapping from vector geometries to raster cells
-    conn.execute("CREATE TABLE poly2cells AS SELECT * FROM polygon_to_raster_cells('polygon.geometry', 'gridmet', 'lon', 'lat', 'value', 'day', ?, ?, ?, ?, ?)", (downscaling_factor, downscaling_factor, True, None, False))
+        conn.execute("""
+            CREATE OR REPLACE TABLE gridmet AS 
+                (SELECT 
+                    * 
+                FROM 
+                    gridmet 
+                FULL JOIN 
+                    gridmet_var 
+                USING (county, day))
+        """)
 
-    # Compute the zonal stats for each day
-    conn.execute("CREATE TABLE zonal_stats AS SELECT * FROM zonal_stats('poly2cells', 'gridmet', 'lon', 'lat', 'value', 'day', ?, ?)", (downscaling_factor, downscaling_factor))
-
-    # Output the results
-    conn.execute("COPY zonal_stats TO 'data/output/zonal_stats.csv' (delimiter ',')")
+    # Output the fully joined table
+    conn.execute(f"""
+        COPY 
+            (SELECT * FROM gridmet) 
+        TO 'data/output/gridmet_{cfg.year}.parquet'
+    """)
 
     # Clean up
     conn.close()
+    os.remove("datapond.db")
+
+if __name__ == "__main__":
+    if os.path.exists("datapond.db"):
+        os.remove("datapond.db")
+        print("File datapond.db removed")
+    main()
