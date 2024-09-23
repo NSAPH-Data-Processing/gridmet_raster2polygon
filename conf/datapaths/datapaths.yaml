@@ -1,6 +1,6 @@
 # if files are stored within the local copy of the repository, then use null:
 input:
-  gridmet_rasters: null
+  raw: null
   shapefiles: null
 
 intermediate: null

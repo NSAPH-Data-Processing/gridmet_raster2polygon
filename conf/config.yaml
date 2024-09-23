@@ -1,8 +1,8 @@
 defaults:
   - _self_
-  - datapaths: county_fasse
+  - datapaths: zcta_cannon
   - gridmet
-  - shapefiles: county   # zcta, county
+  - shapefiles: zcta   # zcta, county
 
 # == aggregation args
 year: 2020

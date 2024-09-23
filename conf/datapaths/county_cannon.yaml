@@ -1,8 +1,8 @@
 # if files are stored within the local copy of the repository, then use null:
 input:
-  gridmet_rasters: /n/dominici_lab/data/platform/environmental/meteorology__gridmet/raw
+  raw: /n/dominici_lab/data/internal/environmental/meteorology__gridmet/raw
   shapefiles: null
 
-intermediate: /n/dominici_lab/data/platform/environmental/meteorology__gridmet/county_daily/.intermediate
+intermediate: /n/dominici_lab/data/internal/environmental/meteorology__gridmet/county_daily/.intermediate
 
-output: /n/dominici_lab/data/platform/environmental/meteorology__gridmet/county_daily
+output: /n/dominici_lab/data/internal/environmental/meteorology__gridmet/county_daily

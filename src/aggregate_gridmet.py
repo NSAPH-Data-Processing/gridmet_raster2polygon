@@ -50,7 +50,7 @@ def main(cfg):
         polygon = pickle.load(f)
     polygon_ids = polygon[cfg.shapefiles[shapefile_year].idvar].values
 
-    raster_path = f"data/input/gridmet_rasters/{cfg.var}_{cfg.year}.nc"
+    raster_path = f"data/input/raw/{cfg.var}_{cfg.year}.nc"
     ds = xarray.open_dataset(raster_path)
     layer_name = list(ds.keys())[0]
     layer = ds[layer_name]

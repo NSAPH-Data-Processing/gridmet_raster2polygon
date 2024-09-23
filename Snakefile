@@ -58,7 +58,7 @@ rule download_shapefiles:
 
 rule download_gridmet:
     output:
-        "data/input/gridmet_rasters/{var}_{year}.nc",
+        "data/input/raw/{var}_{year}.nc",
     log:
         err="logs/download_gridmet_{var}_{year}.log",
     shell:
@@ -71,7 +71,7 @@ rule download_gridmet:
 rule aggregate_gridmet:
     input:
         get_shapefile_input,
-        "data/input/gridmet_rasters/{var}_{year}.nc",
+        "data/input/raw/{var}_{year}.nc",
     output:
         f"data/intermediate/{{var}}_{{year}}_{shapefiles}.parquet",
     log:
