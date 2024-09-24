@@ -3,6 +3,6 @@ input:
   raw: /n/dominici_lab/data/internal/environmental/meteorology__gridmet/raw
   shapefiles: null
 
-intermediate: /n/dominici_lab/data/internal/environmental/meteorology__gridmet/zcta_daily/.intermediate
+intermediate: /n/dominici_lab/data/internal/environmental/meteorology__gridmet/.zcta_daily__intermediate
 
 output: /n/dominici_lab/data/internal/environmental/meteorology__gridmet/zcta_daily
