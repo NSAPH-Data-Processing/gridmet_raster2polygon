@@ -66,7 +66,7 @@ def main(cfg):
                  FROM gridmet
                  ORDER BY date, {cfg.polygon_name}
             ) 
-        TO 'data/output/gridmet_{cfg.year}.parquet'
+        TO 'data/output/meteorology_{cfg.polygon_name}_daily_{cfg.year}.parquet'
     """)
 
     # Clean up
