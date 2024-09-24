@@ -40,9 +40,8 @@ def get_shapefile_input(wildcards):
 rule all:
     input:
         expand(
-            f"data/intermediate/{{var}}_{{year}}_{shapefiles}.parquet",
-            year=years,
-            var=vars,
+            f"data/output/gridmet_{{year}}.parquet",
+            year=years
         ),
 
 
@@ -64,10 +63,6 @@ rule download_gridmet:
     shell:
         "python src/download_gridmet.py year={wildcards.year} var={wildcards.var} 2> {log.err}"
 
-
-
-
-
 rule aggregate_gridmet:
     input:
         get_shapefile_input,
@@ -82,4 +77,20 @@ rule aggregate_gridmet:
         """
         python src/aggregate_gridmet.py year={wildcards.year} var={wildcards.var} {params.overrides} \
              &> {log}
+        """
+
+rule format_gridmet:
+    input:
+        expand(
+            f"data/intermediate/{{var}}_{{year}}_{shapefiles}.parquet",
+            var=vars, 
+            year="{year}"
+        ),
+    output:
+        f"data/output/gridmet_{{year}}.parquet",
+    log:
+        f"logs/format_gridmet_{{year}}.log",
+    shell:
+        """
+        python src/format_gridmet.py year={wildcards.year}
         """
