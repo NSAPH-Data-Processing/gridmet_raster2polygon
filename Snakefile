@@ -40,7 +40,7 @@ def get_shapefile_input(wildcards):
 rule all:
     input:
         expand(
-            f"data/output/gridmet_{{year}}.parquet",
+            f"data/output/meteorology_{shapefiles}_daily_{{year}}.parquet",
             year=years
         ),
 
@@ -87,7 +87,7 @@ rule format_gridmet:
             year="{year}"
         ),
     output:
-        f"data/output/gridmet_{{year}}.parquet",
+        f"data/output/meteorology_{shapefiles}_daily_{{year}}.parquet",
     log:
         f"logs/format_gridmet_{{year}}.log",
     shell:
