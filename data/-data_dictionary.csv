@@ -1,0 +1,13 @@
+colname, description
+<geoid>, id of the geoboundary
+date, date of the estimated meteorological variables
+sph, near-surface specific humidity
+vpd, mean vapor pressure deficit
+tmmn, minimum near-surface air temperature
+tmmx, maximum near-surface air temperature
+pr, precipitation
+rmin, minimum near-surface relative humidity
+rmax, maximum near-surface relative humidity
+srad, surface downwelling solar radiation
+vs, wind speed at 10m
+th, wind direction at 10m

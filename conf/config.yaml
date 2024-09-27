@@ -1,8 +1,8 @@
 defaults:
   - _self_
-  - datapaths.yaml
-  - gridmet.yaml
-  - shapefiles: county   # zcta, county
+  - datapaths: zcta_cannon
+  - gridmet
+  - shapefiles: zcta   # zcta, county
 
 # == aggregation args
 year: 2020
