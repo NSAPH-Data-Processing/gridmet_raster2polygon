@@ -1,7 +1,0 @@
-# if files are stored within the local copy of the repository, then use null:
-input:
-  gridmet_rasters: /n/dominici_lab/data/platform/environmental/meteorology__gridmet/raw
-  shapefiles: null
-
-output:
-  gridmet_raster2polygon: /n/dominici_lab/data/platform/environmental/meteorology__gridmet/county_daily

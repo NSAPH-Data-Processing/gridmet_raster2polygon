@@ -40,9 +40,8 @@ def get_shapefile_input(wildcards):
 rule all:
     input:
         expand(
-            f"data/output/gridmet_raster2polygon/{{var}}_{{year}}_{shapefiles}.parquet",
-            year=years,
-            var=vars,
+            f"data/output/meteorology_{shapefiles}_daily_{{year}}.parquet",
+            year=years
         ),
 
 
@@ -58,22 +57,18 @@ rule download_shapefiles:
 
 rule download_gridmet:
     output:
-        "data/input/gridmet_rasters/{var}_{year}.nc",
+        "data/input/raw/{var}_{year}.nc",
     log:
         err="logs/download_gridmet_{var}_{year}.log",
     shell:
         "python src/download_gridmet.py year={wildcards.year} var={wildcards.var} 2> {log.err}"
 
-
-
-
-
 rule aggregate_gridmet:
     input:
         get_shapefile_input,
-        "data/input/gridmet_rasters/{var}_{year}.nc",
+        "data/input/raw/{var}_{year}.nc",
     output:
-        f"data/output/gridmet_raster2polygon/{{var}}_{{year}}_{shapefiles}.parquet",
+        f"data/intermediate/{{var}}_{{year}}_{shapefiles}.parquet",
     log:
         f"logs/aggregate_gridmet_{{var}}_{{year}}_{shapefiles}.log",
     params:
@@ -82,4 +77,20 @@ rule aggregate_gridmet:
         """
         python src/aggregate_gridmet.py year={wildcards.year} var={wildcards.var} {params.overrides} \
              &> {log}
+        """
+
+rule format_gridmet:
+    input:
+        expand(
+            f"data/intermediate/{{var}}_{{year}}_{shapefiles}.parquet",
+            var=vars, 
+            year="{year}"
+        ),
+    output:
+        f"data/output/meteorology_{shapefiles}_daily_{{year}}.parquet",
+    log:
+        f"logs/format_gridmet_{{year}}.log",
+    shell:
+        """
+        python src/format_gridmet.py year={wildcards.year}
         """
