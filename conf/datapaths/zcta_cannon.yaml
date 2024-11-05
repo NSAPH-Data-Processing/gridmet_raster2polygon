@@ -1,8 +1,8 @@
 # if files are stored within the local copy of the repository, then use null:
 input:
-  raw: /n/dominici_lab/data/internal/environmental/meteorology__gridmet/raw
+  raw: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/raw
   shapefiles: null
 
-intermediate: /n/dominici_lab/data/internal/environmental/meteorology__gridmet/.zcta_daily__intermediate
+intermediate: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/.zcta_daily__intermediate
 
-output: /n/dominici_lab/data/internal/environmental/meteorology__gridmet/zcta_daily
+output: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/zcta_daily
