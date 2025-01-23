@@ -28,7 +28,7 @@ if "PYTHONPATH" in os.environ:
 rule all:
     input:
         expand(
-            f"data/output/meteorology_{shapefiles}_daily_{{year}}.parquet",
+            f"data/output/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
             year=years
         ),
 
@@ -63,10 +63,22 @@ rule format_gridmet:
             year="{year}"
         ),
     output:
-        f"data/output/meteorology_{shapefiles}_daily_{{year}}.parquet",
+        f"data/output/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
     log:
         f"logs/format_gridmet_{{year}}.log",
     shell:
         """
         python src/format_gridmet.py year={wildcards.year}
+        """
+
+rule get_yearly:
+    input:
+        f"data/output/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
+    output:
+        f"data/output/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
+    log:
+        f"logs/format_gridmet_{{year}}.log",
+    shell:
+        """
+        python src/get_yearly.py year={wildcards.year}
         """

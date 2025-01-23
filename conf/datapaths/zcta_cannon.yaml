@@ -5,4 +5,6 @@ input:
 
 intermediate: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/.zcta_daily__intermediate
 
-output: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/zcta_daily
+output: 
+  daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/zcta_daily
+  yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/zcta_yearly
