@@ -1,12 +1,12 @@
 defaults:
   - _self_
-  - datapaths: zcta_cannon
+  - datapaths: county_cannon
   - gridmet
-  - shapefiles: zcta   # zcta, county
+  - shapefiles: county   # zcta, county
 
 # == aggregation args
 year: 2020
-var: tmmx  # see the gridmet key in gridmet.yaml for valid options
+var: th  # see the gridmet key in gridmet.yaml for valid options
 downscaling_factor: 4
 
 # == shapefile download args

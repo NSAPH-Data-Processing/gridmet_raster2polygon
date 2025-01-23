@@ -54,6 +54,15 @@ cd $HOME_DIR/data/output/
 ln -s <output_path> . 
 ```
 
+## Using custom shapefiles
+
+It is also possible to run this script to aggregate based on your own custom shapefile. In order to do this, follow the following steps:
+
+1. Create a `conf/datapaths/{shapefile_name}.yaml` that contains the locations of input, intermediate, and output files. An example is given with `county_cannon.yaml`.
+2. Create a `conf/shapefiles/{shapefiles_name}.yaml` with important metadata for your shapefile. For what years is it available? What is the ID column (usually `GEOID`)? What is the base naming format?
+    a. Note: this pipeline expects shapefiles to be stored in paths of the form `{shapefile_prefix}_{shapefile_year}/{shapefile_prefix}_{shapefile_year}.shp`
+3. Modify `conf/config.yaml` as necessary.
+
 ## Download gridmet pm25 data
 
 #TODO include steps

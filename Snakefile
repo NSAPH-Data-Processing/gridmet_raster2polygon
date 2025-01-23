@@ -4,8 +4,6 @@ import hydra
 from src.aggregate_gridmet import available_shapefile_year
 
 conda: "requirements.yaml"
-
-
 configfile: "conf/snakemake.yaml"
 
 
@@ -26,16 +24,6 @@ with hydra.initialize(version_base=None, config_path="conf"):
 if "PYTHONPATH" in os.environ:
     os.environ["PYTHONPATH"] += ":."
 
-
-## == Contructs the input polygon for a given year
-def get_shapefile_input(wildcards):
-    shapefile_years_list = list(hydra_cfg.shapefiles.keys())
-    shapefile_year = available_shapefile_year(int(wildcards.year), shapefile_years_list)
-    return (
-        f"data/input/shapefiles/shapefile_{shapefiles}_{shapefile_year}/shapefile.pkl"
-    )
-
-
 # == Define rules ==
 rule all:
     input:
@@ -43,17 +31,6 @@ rule all:
             f"data/output/meteorology_{shapefiles}_daily_{{year}}.parquet",
             year=years
         ),
-
-
-rule download_shapefiles:
-    output:
-        f"data/input/shapefiles/shapefile_{shapefiles}_{{shapefile_year}}/shapefile.pkl",
-    shell:
-        f"""
-        python src/download_shapefile.py shapefiles={shapefiles} \
-            shapefile_year={{wildcards.shapefile_year}}
-        """
-
 
 rule download_gridmet:
     output:
@@ -65,7 +42,6 @@ rule download_gridmet:
 
 rule aggregate_gridmet:
     input:
-        get_shapefile_input,
         "data/input/raw/{var}_{year}.nc",
     output:
         f"data/intermediate/{{var}}_{{year}}_{shapefiles}.parquet",
