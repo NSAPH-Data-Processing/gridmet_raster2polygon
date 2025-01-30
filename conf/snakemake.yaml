@@ -1,3 +1,5 @@
-gridmet_vars: [sph, vpd, tmmn, tmmx, pr, rmin, rmax, srad, vs, th]
-years: [2000, 2020]  # ymin, ymax
-shapefiles: zcta  # zcta, county
+#gridmet_vars: [sph, vpd, tmmn, tmmx, pr, rmin, rmax, srad, vs, th]
+#years: [2000, 2020]  # ymin, ymax
+gridmet_vars: [sph, vpd]
+years: [2000, 2001]
+shapefiles: grid_4x4km  # zcta, county
