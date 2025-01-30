@@ -13,9 +13,18 @@ Raster to polygon aggregations of gridMET meteorological data. The spatial aggre
 
 ## Dataset Columns:
 
-#TODO incorporate dataset columns
-
----
+- GEOID `{string}`: Geographic ID of aggregation level (U.S. County, ZCTA, or grid cell).  
+- `year` `{int}`: Dataset year.  
+- `sph` `{float64}`: Specific humidity (kg/kg), representing the mass of water vapor per unit mass of air.  
+- `vpd` `{float64}`: Vapor pressure deficit (hPa), which measures the difference between the amount of moisture in the air and how much moisture the air can hold when saturated.  
+- `tmmn` `{float64}`: Minimum daily temperature (Kelvin).  
+- `tmmx` `{float64}`: Maximum daily temperature (Kelvin).  
+- `pr` `{float64}`: Precipitation (mm), total daily precipitation.  
+- `rmin` `{float64}`: Minimum relative humidity (%), the lowest daily relative humidity recorded.  
+- `rmax` `{float64}`: Maximum relative humidity (%), the highest daily relative humidity recorded.  
+- `srad` `{float64}`: Downward shortwave solar radiation (W/m²), measuring the solar energy received at the surface.  
+- `vs` `{float64}`: Wind speed at 10 meters (m/s), representing the average daily wind speed at 10 meters above ground level.  
+- `th` `{float64}`: Wind direction at 10 meters (degrees from north), indicating the direction from which the wind is blowing.  
 
 # Run
 
@@ -54,9 +63,25 @@ cd $HOME_DIR/data/output/
 ln -s <output_path> . 
 ```
 
-## Download gridmet pm25 data
+## Using custom shapefiles
 
-#TODO include steps
+It is also possible to run this script to aggregate based on your own custom shapefile. In order to do this, follow the following steps:
+
+1. Create a `conf/datapaths/{shapefile_name}.yaml` that contains the locations of input, intermediate, and output files. An example is given with `county_cannon.yaml`.
+2. Create a `conf/shapefiles/{shapefiles_name}.yaml` with important metadata for your shapefile. The following metadata is required:
+    - `years`: Available shapefile years (list) 
+    - `idvar`: ID column name
+    - `shapefile_prefix`: Base naming format
+3. Modify the `datapaths` and `shapefile` entries in `conf/config.yaml` to match these new config files. For example:
+
+```yaml
+    defaults:
+    - _self_
+    - datapaths: grid4x4_cannon
+    - gridmet
+    - shapefiles: grid_4x4km 
+```
+NB: this pipeline expects shapefiles to be stored in paths of the form `{shapefile_prefix}_{shapefile_year}/{shapefile_prefix}_{shapefile_year}.shp`
 
 ## Pipeline
 
