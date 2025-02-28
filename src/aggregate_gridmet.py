@@ -46,12 +46,13 @@ def main(cfg):
     shapefile_years_list = list(cfg.shapefiles.years)
     shapefile_year = available_shapefile_year(cfg.year, shapefile_years_list)
     shapefile_nm = cfg.shapefiles.prefix + str(shapefile_year)
+    geo_name = cfg.datapaths.name
 
-    shapefile_path = f"data/input/shapefiles/{shapefile_nm}/{shapefile_nm}.shp"
+    shapefile_path = f"data/{geo_name}/input/shapefiles/{shapefile_nm}/{shapefile_nm}.shp"
     polygon = gpd.read_file(shapefile_path)
     polygon_ids = polygon[cfg.shapefiles.idvar].values
 
-    raster_path = f"data/input/raw/{cfg.var}_{cfg.year}.nc"
+    raster_path = f"data/{geo_name}/input/raw/{cfg.var}_{cfg.year}.nc"
     ds = xarray.open_dataset(raster_path)
     layer_name = list(ds.keys())[0]
     layer = ds[layer_name]
@@ -135,7 +136,7 @@ def main(cfg):
 
     # == save output file
     output_filename = f"{cfg.var}_{cfg.year}_{cfg.polygon_name}.parquet"
-    output_path = f"data/intermediate/{output_filename}"
+    output_path = f"data/{geo_name}/intermediate/{output_filename}"
     df.to_parquet(output_path)
 
 

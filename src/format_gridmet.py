@@ -9,8 +9,11 @@ LOGGER = logging.getLogger(__name__)
 
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
 def main(cfg):
-    gridmet_vars = list(cfg.gridmet.variable_key.keys())
-    
+    # FLAG TO DISCUSS WITH GROUP
+    #gridmet_vars = list(cfg.gridmet.variable_key.keys())
+    gridmet_vars = cfg.snakemake.gridmet_vars
+    geo_name = cfg.datapaths.name
+
     LOGGER.info(f"Joining GridMET variables")
     conn = duckdb.connect(f"datapond_{cfg.year}.db")
 
@@ -23,7 +26,7 @@ def main(cfg):
                  day AS date, 
                  {gridmet_vars[0]}
             FROM
-                'data/intermediate/{gridmet_vars[0]}_{cfg.year}_{cfg.polygon_name}.parquet'
+                'data/{geo_name}/intermediate/{gridmet_vars[0]}_{cfg.year}_{cfg.polygon_name}.parquet'
             WHERE
                 {gridmet_vars[0]} IS NOT NULL
             )
@@ -39,7 +42,7 @@ def main(cfg):
                      day AS date, 
                      {var} 
                 FROM 
-                    'data/intermediate/{var}_{cfg.year}_{cfg.polygon_name}.parquet'
+                    'data/{geo_name}/intermediate/{var}_{cfg.year}_{cfg.polygon_name}.parquet'
                 WHERE
                     {var} IS NOT NULL
                 )
@@ -66,7 +69,7 @@ def main(cfg):
                  FROM gridmet
                  ORDER BY date, {cfg.polygon_name}
             ) 
-        TO 'data/output/daily/meteorology__gridmet__{cfg.polygon_name}_daily__{cfg.year}.parquet'
+        TO 'data/{geo_name}/output/daily/meteorology__gridmet__{cfg.polygon_name}_daily__{cfg.year}.parquet'
     """)
 
     # Clean up

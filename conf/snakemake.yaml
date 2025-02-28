@@ -1,5 +1,5 @@
-#gridmet_vars: [sph, vpd, tmmn, tmmx, pr, rmin, rmax, srad, vs, th]
-#years: [2000, 2020]  # ymin, ymax
-gridmet_vars: [sph, vpd]
-years: [2000, 2001]
+# @package snakemake
+gridmet_vars: [sph, vpd, tmmn, tmmx, pr, rmin, rmax, srad, vs, th]
+years: [2000, 2020]
 shapefiles: grid_4x4km  # zcta, county
+datapaths: grid4x4_cannon

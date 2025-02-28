@@ -1,12 +1,13 @@
-# if files are stored within the local copy of the repository, then use null:
-name: grid_4x4km
+name: grid_4x4
 
-input: 
-  raw: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/raw
-  shapefiles: /n/dominici_lab/lab/lego/geoboundaries/grid/us_shapefile__grid/grid_4x4km_yearly/
+dirs:
+  input: 
+    raw: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/raw/
+    shapefiles: /n/dominici_lab/lab/lego/geoboundaries/grid/us_shapefile__grid/grid_4x4km_yearly/
 
-intermediate: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/.grid_4x4km_daily__intermediate
+  #intermediate: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/.grid_4x4km_daily__intermediate
+  intermediate: /n/netscratch/dominici_lab/Lab/jkitch_gridmet_raster2polygon/data/intermediate/.grid_4x4km_daily__intermediate
 
-output: 
-  daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/grid_4x4km_daily
-  yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/grid_4x4km_yearly
+  output: 
+    daily: /n/netscratch/dominici_lab/Lab/jkitch_gridmet_raster2polygon/data/output/grid_4x4km_daily
+    yearly: /n/netscratch/dominici_lab/Lab/jkitch_gridmet_raster2polygon/data/output/grid_4x4km_yearly
