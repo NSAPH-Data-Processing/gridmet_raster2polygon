@@ -23,7 +23,7 @@ def create_subfolders_and_links(datapath="data", folder_dict=None):
     Recursively create subfolders and symbolic links.
     """
     if not os.path.exists(datapath):
-        LOGGER.info(f"Error: {datapath} does not exists.")
+        LOGGER.info(f"Error: {datapath} does not exist.")
         return
 
     if isinstance(folder_dict, DictConfig):
