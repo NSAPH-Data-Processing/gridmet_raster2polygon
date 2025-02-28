@@ -1,0 +1,24 @@
+
+
+gridmet_base: &base_path /n/dominici_lab/lab/lego/environmental/meteorology__gridmet
+geo_base: &geo_path /n/dominici_lab/lab/lego/geoboundaries
+
+input:
+  raw: *base_path/raw
+  shapefiles:
+    county: *geo_path/us_geoboundaries__census/us_shapefile__census/county_yearly/
+    zcta: *geo_path/us_geoboundaries__census/us_shapefile__census/zcta_yearly/
+    grid_4x4km: *geo_path/grid/us_shapefile__grid/grid_4x4km_yearly/
+
+intermediate:
+  county: *base_path/.county_daily__intermediate
+  zcta: *base_path/.zcta_daily__intermediate
+  grid_4x4km: *base_path/.grid_4x4km_daily__intermediate
+
+output:
+  county_daily: *base_path/county_daily
+  county_yearly: *base_path/county_yearly
+  zcta_daily: *base_path/zcta_daily
+  zcta_yearly: *base_path/zcta_yearly
+  grid_4x4km_daily: *base_path/grid_4x4km_daily
+  grid_4x4km_yearly: *base_path/grid_4x4km_yearly
