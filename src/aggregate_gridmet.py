@@ -1,4 +1,3 @@
-import pickle
 from tqdm import tqdm
 import xarray
 import rasterio
@@ -11,6 +10,8 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import zoom
 
 from hydra.core.hydra_config import HydraConfig
+import sys
+sys.path.append('./')
 from utils.faster_zonal_stats import polygon_to_raster_cells
 
 
@@ -42,15 +43,16 @@ def main(cfg):
     # load shapefile
     LOGGER.info("Loading shapefile...")
     # use previously available shapefile
-    shapefile_years_list = list(cfg.shapefiles.keys())
+    shapefile_years_list = list(cfg.shapefiles.years)
     shapefile_year = available_shapefile_year(cfg.year, shapefile_years_list)
+    shapefile_nm = cfg.shapefiles.prefix + str(shapefile_year)
+    geo_name = cfg.datapaths.name
 
-    shape_path = f"data/input/shapefiles/shapefile_{cfg.polygon_name}_{shapefile_year}/shapefile.pkl"
-    with open(shape_path, "rb") as f:
-        polygon = pickle.load(f)
-    polygon_ids = polygon[cfg.shapefiles[shapefile_year].idvar].values
+    shapefile_path = f"data/{geo_name}/input/shapefiles/{shapefile_nm}/{shapefile_nm}.shp"
+    polygon = gpd.read_file(shapefile_path)
+    polygon_ids = polygon[cfg.shapefiles.idvar].values
 
-    raster_path = f"data/input/raw/{cfg.var}_{cfg.year}.nc"
+    raster_path = f"data/{geo_name}/input/raw/{cfg.var}_{cfg.year}.nc"
     ds = xarray.open_dataset(raster_path)
     layer_name = list(ds.keys())[0]
     layer = ds[layer_name]
@@ -134,7 +136,7 @@ def main(cfg):
 
     # == save output file
     output_filename = f"{cfg.var}_{cfg.year}_{cfg.polygon_name}.parquet"
-    output_path = f"data/intermediate/{output_filename}"
+    output_path = f"data/{geo_name}/intermediate/{output_filename}"
     df.to_parquet(output_path)
 
 

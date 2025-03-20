@@ -5,14 +5,27 @@ from omegaconf import DictConfig
 
 LOGGER = logging.getLogger(__name__)
 
+def init_folder(datapath="data", folder_cfg=None):
+    folder_dict = folder_cfg.dirs
+    if not os.path.exists(datapath):
+        LOGGER.info(f"Error: {datapath} does not exists.")
+        return
+    
+    # appending name of geography to root datapath
+    if folder_cfg.name is not None:
+        datapath = os.path.join(datapath, folder_cfg.name)
+        os.makedirs(datapath, exist_ok=True)
+
+    create_subfolders_and_links(datapath=datapath, folder_dict=folder_dict)
 
 def create_subfolders_and_links(datapath="data", folder_dict=None):
     """
     Recursively create subfolders and symbolic links.
     """
     if not os.path.exists(datapath):
-        LOGGER.info(f"Error: {datapath} does not exists.")
+        LOGGER.info(f"Error: {datapath} does not exist.")
         return
+
     if isinstance(folder_dict, DictConfig):
         for path, subfolder_dict in folder_dict.items():
             sub_datapath = os.path.join(datapath, path)
@@ -50,8 +63,7 @@ def create_subfolders_and_links(datapath="data", folder_dict=None):
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
 def main(cfg):
     """Create data subfolders and symbolic links as indicated in config file."""
-    create_subfolders_and_links(folder_dict=cfg.datapaths)
+    init_folder(folder_cfg=cfg.datapaths)
 
 if __name__ == "__main__":
     main()
-

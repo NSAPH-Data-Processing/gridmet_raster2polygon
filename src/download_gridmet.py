@@ -15,8 +15,9 @@ def main(cfg):
     desc = cfg.gridmet.variable_key[cfg.var]
     LOGGER.info(f"Downloading GridMET for year={cfg.year} var={desc} ({cfg.var})")
 
+    geo_name = cfg.datapaths.name
     # download directory
-    target_dir = f"data/input/raw"
+    target_dir = f"data/{geo_name}/input/raw"
 
     # make url and target file
     url = cfg.gridmet.url + f"{cfg.var}_{cfg.year}.nc"

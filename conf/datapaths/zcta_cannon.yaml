@@ -1,10 +1,13 @@
 # if files are stored within the local copy of the repository, then use null:
-input:
-  raw: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/raw
-  shapefiles: null
+name: zcta
 
-intermediate: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/.zcta_daily__intermediate
+dirs:
+  input:
+    raw: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/raw
+    shapefiles: /n/dominici_lab/lab/lego/geoboundaries/us_geoboundaries__census/us_shapefile__census/zcta_yearly/
 
-output: 
-  daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/zcta_daily
-  yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/zcta_yearly
+  intermediate: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/.zcta_daily__intermediate
+
+  output: 
+    daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/zcta_daily
+    yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/zcta_yearly
