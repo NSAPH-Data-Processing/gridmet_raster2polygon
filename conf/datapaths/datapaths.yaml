@@ -1,8 +1,11 @@
 # if files are stored within the local copy of the repository, then use null:
-input:
-  raw: null
-  shapefiles: null
+name: null
 
-intermediate: null
+dirs:
+  input:
+    raw: null
+    shapefiles: null
 
-output: null
+  intermediate: null
+
+  output: null

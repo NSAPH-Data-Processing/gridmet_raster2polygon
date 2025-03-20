@@ -9,14 +9,6 @@ Raster to polygon aggregations of gridMET meteorological data. The spatial aggre
 
 ---
 
-# Codebook
-
-## Dataset Columns:
-
-#TODO incorporate dataset columns
-
----
-
 # Run
 
 ## Conda environment
@@ -54,9 +46,16 @@ cd $HOME_DIR/data/output/
 ln -s <output_path> . 
 ```
 
-## Download gridmet pm25 data
+## Using custom shapefiles
 
-#TODO include steps
+It is also possible to run this script to aggregate based on your own custom shapefile. In order to do this, follow these steps:
+
+1. Create a `conf/datapaths/{shapefile_name}.yaml` that contains the desired locations for input, intermediate, and output files. An example is given with `county_cannon.yaml`. Leaving any entries as `null` means files will be stored locally for that directory (no symlink).
+2. Create a `conf/shapefiles/{shapefile_name}.yaml` with important metadata for your shapefile. For what years is it available? What is the ID column (usually `GEOID`)? What is the base naming format?
+    a. Note: this pipeline expects shapefiles to be stored in paths of the form `{shapefile_prefix}_{shapefile_year}/{shapefile_prefix}_{shapefile_year}.shp`
+3. Modify `conf/snakemake.yaml` as necessary. This config file controls what years, what geographic levels, and what gridmet variables the pipeline will process.
+4. Run `python3 create_dir_paths.py` to create the file directory structure for the pipeline.
+5. 
 
 ## Pipeline
 

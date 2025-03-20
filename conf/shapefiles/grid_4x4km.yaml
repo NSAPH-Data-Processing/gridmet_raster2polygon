@@ -1,0 +1,4 @@
+years:
+  - 2020
+idvar: "GEOID"
+prefix: "us__shapefile__grid_4x4km_yearly__"

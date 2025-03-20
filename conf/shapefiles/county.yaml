@@ -1,31 +1,14 @@
 # County shapefiles (cartographic boundaries) https://www.census.gov/programs-surveys/geography/guidance/tiger-data-products-guide.html
-2013:
-  url: https://www2.census.gov/geo/tiger/GENZ2013/cb_2013_us_county_500k.zip # readme https://www2.census.gov/geo/tiger/GENZ2013/2013_file_name_def.pdf
-  idvar: GEOID
-2014:
-  url: https://www2.census.gov/geo/tiger/GENZ2014/shp/cb_2014_us_county_500k.zip
-  idvar: GEOID
-2015:
-  url: https://www2.census.gov/geo/tiger/GENZ2015/shp/cb_2015_us_county_500k.zip
-  idvar: GEOID
-2016:
-  url: https://www2.census.gov/geo/tiger/GENZ2016/shp/cb_2016_us_county_500k.zip
-  idvar: GEOID
-2017:
-  url: https://www2.census.gov/geo/tiger/GENZ2017/shp/cb_2017_us_county_500k.zip
-  idvar: GEOID
-2018:
-  url: https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_500k.zip
-  idvar: GEOID
-2019:
-  url: https://www2.census.gov/geo/tiger/GENZ2019/shp/cb_2019_us_county_500k.zip
-  idvar: GEOID
-2020:
-  url: https://www2.census.gov/geo/tiger/GENZ2020/shp/cb_2020_us_county_500k.zip
-  idvar: GEOID
-2021:
-  url: https://www2.census.gov/geo/tiger/GENZ2021/shp/cb_2021_us_county_500k.zip
-  idvar: GEOID
-2022:
-  url: https://www2.census.gov/geo/tiger/GENZ2022/shp/cb_2022_us_county_500k.zip
-  idvar: GEOID
+years:
+  - 2013
+  - 2014
+  - 2015
+  - 2016
+  - 2017
+  - 2018
+  - 2019
+  - 2020
+  - 2021
+  - 2022
+idvar: "GEOID"
+prefix: "us__shapefile__census__county_yearly__"
