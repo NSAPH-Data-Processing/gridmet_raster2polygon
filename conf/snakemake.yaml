@@ -1,5 +1,5 @@
 # @package snakemake
 gridmet_vars: [sph, vpd, tmmn, tmmx, pr, rmin, rmax, srad, vs, th]
-years: [2000, 2020]
-shapefiles: grid_4x4km  # zcta, county
-datapaths: grid4x4_cannon
+years: [2021, 2024]
+shapefiles: zcta  # zcta, county
+datapaths: zcta_cannon
