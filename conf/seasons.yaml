@@ -3,30 +3,29 @@
 # Each season has a name, start month/day, and end month/day
 # For seasons spanning year boundaries (like winter), use year_offset for months in the previous year
 
-seasons:
-  spring:
-    start_month: 3
-    start_day: 1
-    end_month: 5
-    end_day: 31
-    year_offset: 0  # 0 = current year
-  summer:
-    start_month: 6
-    start_day: 1
-    end_month: 8
-    end_day: 31
-    year_offset: 0
-  fall:
-    start_month: 9
-    start_day: 1
-    end_month: 11
-    end_day: 30
-    year_offset: 0
-  winter:
-    # Winter includes December from previous year and Jan-Feb of current year
-    # December is handled with year_offset: -1 to indicate previous year
-    start_month: 12
-    start_day: 1
-    end_month: 2
-    end_day: 29  # Handles leap years automatically in the script
-    year_offset: -1  # December from previous year
+spring:
+  start_month: 3
+  start_day: 1
+  end_month: 5
+  end_day: 31
+  year_offset: 0  # 0 = current year
+summer:
+  start_month: 6
+  start_day: 1
+  end_month: 8
+  end_day: 31
+  year_offset: 0
+fall:
+  start_month: 9
+  start_day: 1
+  end_month: 11
+  end_day: 30
+  year_offset: 0
+winter:
+  # Winter includes December from previous year and Jan-Feb of current year
+  # December is handled with year_offset: -1 to indicate previous year
+  start_month: 12
+  start_day: 1
+  end_month: 2
+  end_day: 29  # Handles leap years automatically in the script
+  year_offset: -1  # December from previous year
