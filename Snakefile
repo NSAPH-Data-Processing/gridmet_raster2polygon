@@ -36,6 +36,10 @@ rule all:
             f"data/{geo_name}/output/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
             year=years
         ),
+        expand(
+            f"data/{geo_name}/output/seasonal/meteorology__gridmet__{shapefiles}_seasonal__{{year}}.parquet",
+            year=years
+        ),
 
 rule download_gridmet:
     output:
@@ -87,3 +91,17 @@ rule get_yearly:
         """
         python src/get_yearly.py year={wildcards.year}
         """
+
+rule get_seasonal:
+    input:
+        current=f"data/{geo_name}/output/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
+        previous=lambda wildcards: f"data/{geo_name}/output/daily/meteorology__gridmet__{shapefiles}_daily__{int(wildcards.year) - 1}.parquet",
+    output:
+        f"data/{geo_name}/output/seasonal/meteorology__gridmet__{shapefiles}_seasonal__{{year}}.parquet",
+    log:
+        f"logs/{geo_name}/get_seasonal_{{year}}.log",
+    shell:
+        """
+        python src/seasonal_vars.py year={wildcards.year} &> {log}
+        """
+
