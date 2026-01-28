@@ -1,9 +1,10 @@
 defaults:
   - _self_
-  - datapaths: zcta_cannon
+  - datapaths: county_cannon
   - gridmet
   - snakemake
-  - shapefiles: zcta   # zcta, county
+  - seasons
+  - shapefiles: county   # zcta, county
 
 # == aggregation args
 year: 2000
