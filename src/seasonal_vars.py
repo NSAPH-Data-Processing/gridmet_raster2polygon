@@ -104,14 +104,6 @@ def main(cfg):
     total_records = conn.execute("SELECT COUNT(*) FROM all_daily_data").fetchone()[0]
     LOGGER.info(f"Total daily records loaded: {total_records:,}")
     
-    # Log first 10 December dates for verification
-    december_dates = conn.execute("SELECT date FROM all_daily_data WHERE month = 12 ORDER BY date LIMIT 10").fetchall()
-    if december_dates:
-        dates_str = ", ".join([str(d[0]) for d in december_dates])
-        LOGGER.info(f"First 10 December dates: {dates_str}")
-    else:
-        LOGGER.warning("No December dates found in the data")
-    
     # Process each configured season
     seasonal_tables = {}
     
