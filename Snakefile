@@ -94,8 +94,7 @@ rule get_yearly:
 
 rule get_seasonal:
     input:
-        current=f"data/{geo_name}/output/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
-        previous=lambda wildcards: f"data/{geo_name}/output/daily/meteorology__gridmet__{shapefiles}_daily__{int(wildcards.year) - 1}.parquet",
+        f"data/{geo_name}/output/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
     output:
         f"data/{geo_name}/output/seasonal/meteorology__gridmet__{shapefiles}_seasonal__{{year}}.parquet",
     log:
