@@ -11,3 +11,4 @@ dirs:
   output: 
     daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/zcta_daily
     yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/zcta_yearly
+    seasonal: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/zcta_seasonal
