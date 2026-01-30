@@ -4,17 +4,12 @@
 # year_offset: 0 = current year, -1 = previous year
 
 summer:
+# June, July, August
   months: [6, 7, 8]
   year_offset: 0
   
 winter:
-  # NEW definition: Dec, Jan, Feb all from the same year
+# Dec, Jan, Feb all from the same year (no lookback to previous year for december)
   months: [12, 1, 2]
   year_offset: 0
   
-  # OLD definition (commented out): Dec from previous year + Jan/Feb from current year
-  # To use this, uncomment below and comment out the NEW definition above:
-  # months: [12]
-  # year_offset: -1
-  # jan_feb_months: [1, 2]
-  # jan_feb_year_offset: 0
