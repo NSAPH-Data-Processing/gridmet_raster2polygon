@@ -5,15 +5,10 @@ This script reads daily parquet files and creates seasonal averages based on
 configurable season definitions from conf/seasons.yaml.
 
 Default seasons:
-- Spring: March 1 - May 31
 - Summer: June 1 - August 31
-- Fall: September 1 - November 30
-- Winter: December 1 (previous year) - February 28/29 (current year)
+- Winter: January 1 - February 28/29 and December 1 - December 31 (of the same year)
 
 adapted from: https://github.com/NSAPH/National-Causal-Analysis/blob/master/Confounders/earth_engine/code/6_calculate_seasonal_averages.R
-
-The logic mirrors the R script that processes temperature data, calculating
-mean values for all gridMET variables by geographic unit and season.
 
 This script is designed to be orchestrated by Snakemake to process multiple years.
 """
@@ -30,39 +25,29 @@ LOGGER = logging.getLogger(__name__)
 
 def build_season_filter(season_name: str, season_config: dict, year: int) -> str:
     """
-    Build a SQL WHERE clause filter for a season.
+    Build a SQL WHERE clause filter for a season based on explicit month list.
     
     Args:
         season_name: Name of the season (e.g., 'summer', 'winter')
-        season_config: Dictionary with start_month, start_day, end_month, end_day, year_offset
+        season_config: Dictionary with 'months' (list of month numbers) and 'year_offset'
         year: The year being processed
     
     Returns:
         SQL WHERE clause string
     """
+    months = season_config.get('months', [])
     year_offset = season_config.get('year_offset', 0)
-    start_month = season_config['start_month']
-    end_month = season_config['end_month']
     
-    if year_offset == 0:
-        # Simple case: season within the same year
-        if start_month <= end_month:
-            # Normal season (e.g., summer: June-August)
-            return f"""data_year = {year} 
-              AND month >= {start_month} AND month <= {end_month}"""
-        else:
-            # Season wraps around year boundary within same year (unusual but supported)
-            return f"""data_year = {year} 
-              AND (month >= {start_month} OR month <= {end_month})"""
-    else:
-        # Season spans year boundary (e.g., winter: Dec previous year + Jan-Feb current year)
-        if year_offset == -1:
-            # Previous year contributes to this year's season
-            return f"""(data_year = {year - 1} AND month >= {start_month})
-            OR (data_year = {year} AND month <= {end_month})"""
-        else:
-            LOGGER.warning(f"Unusual year_offset {year_offset} for season {season_name}")
-            return f"data_year = {year} AND month >= {start_month} AND month <= {end_month}"
+    if not months:
+        LOGGER.error(f"No months specified for season {season_name}")
+        return "1=0"  # Returns no rows
+    
+    target_year = year + year_offset
+    month_conditions = " OR ".join([f"month = {m}" for m in months])
+    
+    LOGGER.info(f"{season_name}: months {months} from year {target_year}")
+    
+    return f"""data_year = {target_year} AND ({month_conditions})"""
 
 
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
@@ -93,27 +78,15 @@ def main(cfg):
     
     conn = duckdb.connect()
     
-    # Check which files we need: current year and previous year (for winter)
+    # Load current year data only
     data_dir = Path(f"data/{geo_name}/output/daily")
     current_year_file = data_dir / f"meteorology__gridmet__{polygon_name}_daily__{year}.parquet"
-    prev_year_file = data_dir / f"meteorology__gridmet__{polygon_name}_daily__{year - 1}.parquet"
     
     if not current_year_file.exists():
         LOGGER.error(f"Daily file not found for year {year}: {current_year_file}")
         return
     
-    # Winter calculation needs previous year's December
-    if not prev_year_file.exists():
-        LOGGER.warning(f"Previous year file not found: {prev_year_file}")
-        LOGGER.warning(f"Winter average for {year} will only include Jan-Feb data")
-        files_to_load = [str(current_year_file)]
-    else:
-        files_to_load = [str(prev_year_file), str(current_year_file)]
-    
-    LOGGER.info(f"Loading daily data from: {files_to_load}")
-    
-    # Load data from the necessary files
-    file_list_str = ", ".join([f"'{f}'" for f in files_to_load])
+    LOGGER.info(f"Loading daily data from: {current_year_file}")
     
     conn.execute(f"""
         CREATE OR REPLACE VIEW all_daily_data AS
@@ -124,12 +97,20 @@ def main(cfg):
             EXTRACT(MONTH FROM date) AS month,
             EXTRACT(DAY FROM date) AS day,
             {', '.join(gridmet_vars)}
-        FROM read_parquet([{file_list_str}])
+        FROM read_parquet('{current_year_file}')
     """)
     
     # Check total records
     total_records = conn.execute("SELECT COUNT(*) FROM all_daily_data").fetchone()[0]
     LOGGER.info(f"Total daily records loaded: {total_records:,}")
+    
+    # Log first 10 December dates for verification
+    december_dates = conn.execute("SELECT date FROM all_daily_data WHERE month = 12 ORDER BY date LIMIT 10").fetchall()
+    if december_dates:
+        dates_str = ", ".join([str(d[0]) for d in december_dates])
+        LOGGER.info(f"First 10 December dates: {dates_str}")
+    else:
+        LOGGER.warning("No December dates found in the data")
     
     # Process each configured season
     seasonal_tables = {}
@@ -163,22 +144,43 @@ def main(cfg):
     # Merge all seasonal data
     LOGGER.info(f"Merging all {len(seasonal_tables)} seasonal aggregates...")
     
+    # Build dynamic JOIN query based on available seasons
+    season_names = list(seasonal_tables.keys())
+    
+    if len(season_names) == 0:
+        LOGGER.error("No seasonal tables to merge")
+        return
+    
+    # Build SELECT columns for all seasons
+    select_columns = []
+    for season_name in season_names:
+        season_abbrev = season_name[:2] if len(season_name) >= 2 else season_name[0]
+        select_columns.extend([f'{season_abbrev}.{season_name}_{var}' for var in gridmet_vars])
+    
+    # Build COALESCE for polygon_name across all tables
+    season_abbrevs = [s[:2] if len(s) >= 2 else s[0] for s in season_names]
+    coalesce_expr = f"COALESCE({', '.join([f'{abbrev}.{polygon_name}' for abbrev in season_abbrevs])})"
+    
+    # Build JOIN clause dynamically
+    first_season = season_names[0]
+    first_abbrev = season_abbrevs[0]
+    from_clause = f"FROM {first_season}_aggregates {first_abbrev}"
+    
+    for i in range(1, len(season_names)):
+        season_name = season_names[i]
+        season_abbrev = season_abbrevs[i]
+        prev_abbrevs = season_abbrevs[:i]
+        prev_coalesce = f"COALESCE({', '.join([f'{abbrev}.{polygon_name}' for abbrev in prev_abbrevs])})"
+        from_clause += f"\n        FULL OUTER JOIN {season_name}_aggregates {season_abbrev}\n"
+        from_clause += f"            ON {prev_coalesce} = {season_abbrev}.{polygon_name}"
+    
     conn.execute(f"""
         CREATE OR REPLACE TABLE seasonal_combined AS
         SELECT
-            COALESCE(sp.{polygon_name}, su.{polygon_name}, f.{polygon_name}, w.{polygon_name}) AS {polygon_name},
+            {coalesce_expr} AS {polygon_name},
             {year} AS year,
-            {', '.join([f'sp.spring_{var}' for var in gridmet_vars])},
-            {', '.join([f'su.summer_{var}' for var in gridmet_vars])},
-            {', '.join([f'f.fall_{var}' for var in gridmet_vars])},
-            {', '.join([f'w.winter_{var}' for var in gridmet_vars])}
-        FROM spring_aggregates sp
-        FULL OUTER JOIN summer_aggregates su
-            ON sp.{polygon_name} = su.{polygon_name}
-        FULL OUTER JOIN fall_aggregates f
-            ON COALESCE(sp.{polygon_name}, su.{polygon_name}) = f.{polygon_name}
-        FULL OUTER JOIN winter_aggregates w
-            ON COALESCE(sp.{polygon_name}, su.{polygon_name}, f.{polygon_name}) = w.{polygon_name}
+            {', '.join(select_columns)}
+        {from_clause}
         ORDER BY {polygon_name}
     """)
     

@@ -1,31 +1,20 @@
 # @package seasons
 # Define meteorological seasons for aggregation
-# Each season has a name, start month/day, and end month/day
-# For seasons spanning year boundaries (like winter), use year_offset for months in the previous year
+# Each season specifies which months to include and the year_offset for those months
+# year_offset: 0 = current year, -1 = previous year
 
-spring:
-  start_month: 3
-  start_day: 1
-  end_month: 5
-  end_day: 31
-  year_offset: 0  # 0 = current year
 summer:
-  start_month: 6
-  start_day: 1
-  end_month: 8
-  end_day: 31
+  months: [6, 7, 8]
   year_offset: 0
-fall:
-  start_month: 9
-  start_day: 1
-  end_month: 11
-  end_day: 30
-  year_offset: 0
+  
 winter:
-  # Winter includes December from previous year and Jan-Feb of current year
-  # December is handled with year_offset: -1 to indicate previous year
-  start_month: 12
-  start_day: 1
-  end_month: 2
-  end_day: 29  # Handles leap years automatically in the script
-  year_offset: -1  # December from previous year
+  # NEW definition: Dec, Jan, Feb all from the same year
+  months: [12, 1, 2]
+  year_offset: 0
+  
+  # OLD definition (commented out): Dec from previous year + Jan/Feb from current year
+  # To use this, uncomment below and comment out the NEW definition above:
+  # months: [12]
+  # year_offset: -1
+  # jan_feb_months: [1, 2]
+  # jan_feb_year_offset: 0
