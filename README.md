@@ -63,9 +63,9 @@ The pipeline transforms gridMET raster data (NetCDF format) into aggregated poly
   - **Summer:** June, July, August
   - **Winter:** December, January, February (all from the same calendar year)
   - Additional seasons can be configured in `conf/seasons.yaml`
-- Each season's variables are prefixed with the season name (e.g., `summer_tmmx`, `winter_pr`)
+- Each season's variables are suffixed with the season name (e.g., `tmmx_summer`, `pr_winter`)
 - **Output:** `data/{geo_name}/output/seasonal/meteorology__gridmet__{polygon_name}_seasonal__{year}.parquet`
-- **Columns:** `{polygon_name}`, `year`, and seasonal averages (e.g., `summer_tmmx`, `winter_tmmn`, etc.)
+- **Columns:** `{polygon_name}`, `year`, and seasonal averages (e.g., `tmmx_summer`, `tmmn_winter`, etc.)
 
 ## Output Files
 
@@ -84,7 +84,7 @@ All outputs are stored in Parquet format for efficient storage and fast querying
 ### Seasonal Data
 - **Path:** `data/{geo_name}/output/seasonal/meteorology__gridmet__{polygon_name}_seasonal__{year}.parquet`
 - **Granularity:** Seasonal averages for each geographic unit
-- **Columns:** Geographic ID, year, and season-specific mean values (e.g., `summer_tmmx`, `winter_pr`)
+- **Columns:** Geographic ID, year, and season-specific mean values (e.g., `tmmx_summer`, `pr_winter`)
 
 ## Customizing Seasons
 

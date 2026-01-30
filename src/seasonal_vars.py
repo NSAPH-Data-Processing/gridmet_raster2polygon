@@ -111,7 +111,7 @@ def main(cfg):
         LOGGER.info(f"Calculating {season_name} {year} averages...")
         
         # Build aggregation expressions
-        agg_exprs = [f"AVG({var}) AS {season_name}_{var}" for var in gridmet_vars]
+        agg_exprs = [f"AVG({var}) AS {var}_{season_name}" for var in gridmet_vars]
         
         # Build WHERE clause for this season
         season_filter = build_season_filter(season_name, season_config, year)
@@ -147,7 +147,7 @@ def main(cfg):
     select_columns = []
     for season_name in season_names:
         season_abbrev = season_name[:2] if len(season_name) >= 2 else season_name[0]
-        select_columns.extend([f'{season_abbrev}.{season_name}_{var}' for var in gridmet_vars])
+        select_columns.extend([f'{season_abbrev}.{var}_{season_name}' for var in gridmet_vars])
     
     # Build COALESCE for polygon_name across all tables
     season_abbrevs = [s[:2] if len(s) >= 2 else s[0] for s in season_names]
