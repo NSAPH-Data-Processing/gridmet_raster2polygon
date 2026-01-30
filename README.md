@@ -26,6 +26,83 @@ Raster to polygon aggregations of gridMET meteorological data. The spatial aggre
 - `vs` `{float64}`: Wind speed at 10 meters (m/s), representing the average daily wind speed at 10 meters above ground level.  
 - `th` `{float64}`: Wind direction at 10 meters (degrees from north), indicating the direction from which the wind is blowing.  
 
+---
+
+# Pipeline Overview
+
+## Data Processing Workflow
+
+The pipeline transforms gridMET raster data (NetCDF format) into aggregated polygon-level statistics through several stages:
+
+### 1. Download (`download_gridmet.py`)
+- Downloads raw gridMET NetCDF files from the [gridMET repository](https://www.climatologylab.org/gridmet.html)
+- One file per variable per year
+- **Output:** `data/{geo_name}/input/raw/{var}_{year}.nc`
+
+### 2. Aggregate (`aggregate_gridmet.py`)
+- Performs zonal statistics to aggregate raster grid cells to polygon boundaries (counties, ZCTAs, or custom shapefiles)
+- Uses weighted averages based on the overlap between grid cells and polygons
+- Processes each variable and year independently
+- **Output:** `data/{geo_name}/intermediate/{var}_{year}_{polygon_name}.parquet`
+
+### 3. Format (`format_gridmet.py`)
+- Joins all meteorological variables into a single daily dataset
+- Ensures data consistency and removes null values
+- Creates a unified time series with all variables for each geographic unit
+- **Output:** `data/{geo_name}/output/daily/meteorology__gridmet__{polygon_name}_daily__{year}.parquet`
+
+### 4. Yearly Aggregates (`get_yearly.py`)
+- Calculates annual average for each meteorological variable
+- Groups by geographic unit (county/ZCTA/grid cell)
+- **Output:** `data/{geo_name}/output/yearly/meteorology__gridmet__{polygon_name}_yearly__{year}.parquet`
+- **Columns:** `{polygon_name}`, `year`, and average values for each gridMET variable
+
+### 5. Seasonal Aggregates (`seasonal_vars.py`)
+- Calculates seasonal averages based on configurable season definitions (see `conf/seasons.yaml`)
+- **Default seasons:**
+  - **Summer:** June, July, August
+  - **Winter:** December, January, February (all from the same calendar year)
+  - Additional seasons can be configured in `conf/seasons.yaml`
+- Each season's variables are prefixed with the season name (e.g., `summer_tmmx`, `winter_pr`)
+- **Output:** `data/{geo_name}/output/seasonal/meteorology__gridmet__{polygon_name}_seasonal__{year}.parquet`
+- **Columns:** `{polygon_name}`, `year`, and seasonal averages (e.g., `summer_tmmx`, `winter_tmmn`, etc.)
+
+## Output Files
+
+All outputs are stored in Parquet format for efficient storage and fast querying:
+
+### Daily Data
+- **Path:** `data/{geo_name}/output/daily/meteorology__gridmet__{polygon_name}_daily__{year}.parquet`
+- **Granularity:** Daily values for each geographic unit
+- **Columns:** Geographic ID, date, and all 11 gridMET variables
+
+### Yearly Data
+- **Path:** `data/{geo_name}/output/yearly/meteorology__gridmet__{polygon_name}_yearly__{year}.parquet`
+- **Granularity:** Annual averages for each geographic unit
+- **Columns:** Geographic ID, year, and mean values for all 11 gridMET variables
+
+### Seasonal Data
+- **Path:** `data/{geo_name}/output/seasonal/meteorology__gridmet__{polygon_name}_seasonal__{year}.parquet`
+- **Granularity:** Seasonal averages for each geographic unit
+- **Columns:** Geographic ID, year, and season-specific mean values (e.g., `summer_tmmx`, `winter_pr`)
+
+## Customizing Seasons
+
+Seasonal definitions are configured in `conf/seasons.yaml`. Each season specifies:
+- `months`: List of month numbers (1=January, 12=December)
+- `year_offset`: Whether to use current year (0) or look back to previous year (-1)
+
+Example configuration:
+```yaml
+summer:
+  months: [6, 7, 8]  # June, July, August
+  year_offset: 0
+
+winter:
+  months: [12, 1, 2]  # December, January, February
+  year_offset: 0       # All from same calendar year
+```
+
 # Run
 
 ## Conda environment
