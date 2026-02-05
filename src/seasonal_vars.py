@@ -1,6 +1,5 @@
 """
 Create seasonal aggregates from daily gridMET data for a single year.
-
 This script reads daily parquet files and creates seasonal averages based on
 configurable season definitions from conf/seasons.yaml.
 
@@ -9,8 +8,6 @@ Default seasons:
 - Winter: January 1 - February 28/29 and December 1 - December 31 (of the same year)
 
 adapted from: https://github.com/NSAPH/National-Causal-Analysis/blob/master/Confounders/earth_engine/code/6_calculate_seasonal_averages.R
-
-This script is designed to be orchestrated by Snakemake to process multiple years.
 """
 
 import duckdb
@@ -29,25 +26,23 @@ def build_season_filter(season_name: str, season_config: dict, year: int) -> str
     
     Args:
         season_name: Name of the season (e.g., 'summer', 'winter')
-        season_config: Dictionary with 'months' (list of month numbers) and 'year_offset'
+        season_config: Dictionary with 'months' (list of month numbers)
         year: The year being processed
     
     Returns:
         SQL WHERE clause string
     """
     months = season_config.get('months', [])
-    year_offset = season_config.get('year_offset', 0)
     
     if not months:
         LOGGER.error(f"No months specified for season {season_name}")
         return "1=0"  # Returns no rows
     
-    target_year = year + year_offset
     month_conditions = " OR ".join([f"month = {m}" for m in months])
     
-    LOGGER.info(f"{season_name}: months {months} from year {target_year}")
+    LOGGER.info(f"{season_name}: months {months} from year {year}")
     
-    return f"""data_year = {target_year} AND ({month_conditions})"""
+    return f"""data_year = {year} AND ({month_conditions})"""
 
 
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
@@ -57,14 +52,6 @@ def main(cfg):
     
     This function processes daily gridMET data to create seasonal averages
     based on the seasons defined in cfg.seasons configuration.
-    
-    Args:
-        cfg: Hydra configuration object containing:
-            - year: Year to process (single year)
-            - polygon_name: Geographic identifier column name (e.g., 'zcta', 'county')
-            - datapaths.name: Geographic area name for file paths
-            - snakemake.gridmet_vars: List of gridMET variables to aggregate
-            - seasons: Dictionary of season definitions with start/end months/days
     """
     geo_name = cfg.datapaths.name
     polygon_name = cfg.polygon_name
@@ -136,7 +123,7 @@ def main(cfg):
     # Merge all seasonal data
     LOGGER.info(f"Merging all {len(seasonal_tables)} seasonal aggregates...")
     
-    # Build dynamic JOIN query based on available seasons
+    # Build JOIN query based on available seasons
     season_names = list(seasonal_tables.keys())
     
     if len(season_names) == 0:
@@ -184,10 +171,6 @@ def main(cfg):
     sample = conn.execute("SELECT * FROM seasonal_combined LIMIT 5").fetchdf()
     LOGGER.info(f"\n{sample.to_string()}")
     
-    # Create output directory if it doesn't exist
-    output_dir = Path(f"data/{geo_name}/output/seasonal")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
     # Write output to parquet file
     output_path = output_dir / f"meteorology__gridmet__{polygon_name}_seasonal__{year}.parquet"
     LOGGER.info(f"Writing output to: {output_path}")
@@ -200,7 +183,6 @@ def main(cfg):
     
     LOGGER.info(f"Seasonal aggregates successfully written to {output_path}")
     
-    # Clean up
     conn.close()
     LOGGER.info("Processing complete!")
 

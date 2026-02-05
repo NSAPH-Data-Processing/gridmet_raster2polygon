@@ -90,17 +90,14 @@ All outputs are stored in Parquet format for efficient storage and fast querying
 
 Seasonal definitions are configured in `conf/seasons.yaml`. Each season specifies:
 - `months`: List of month numbers (1=January, 12=December)
-- `year_offset`: Whether to use current year (0) or look back to previous year (-1)
 
 Example configuration:
 ```yaml
 summer:
   months: [6, 7, 8]  # June, July, August
-  year_offset: 0
 
 winter:
   months: [12, 1, 2]  # December, January, February
-  year_offset: 0       # All from same calendar year
 ```
 
 # Run

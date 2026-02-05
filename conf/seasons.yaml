@@ -1,15 +1,12 @@
 # @package seasons
 # Define meteorological seasons for aggregation
-# Each season specifies which months to include and the year_offset for those months
-# year_offset: 0 = current year, -1 = previous year
+# Each season specifies which months to include
 
 summer:
 # June, July, August
   months: [6, 7, 8]
-  year_offset: 0
   
 winter:
-# Dec, Jan, Feb all from the same year (no lookback to previous year for december)
+# Dec, Jan, Feb all from the same year
   months: [12, 1, 2]
-  year_offset: 0
   
