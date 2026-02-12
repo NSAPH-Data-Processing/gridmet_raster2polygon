@@ -9,6 +9,8 @@ import logging
 import matplotlib.pyplot as plt
 from scipy.ndimage import zoom
 
+from rasterio.warp import reproject, Resampling  # NEW
+
 from hydra.core.hydra_config import HydraConfig
 import sys
 sys.path.append('./')
@@ -29,26 +31,97 @@ def available_shapefile_year(year, shapefile_years_list: list):
         if year >= shapefile_year:
             return shapefile_year
 
-    return min(
-        shapefile_years_list
-    )  # Returns the last element if year is greater than the last element
+    return min(shapefile_years_list)
+
+
+# ===========================
+# NEW: Grid alignment helpers
+# ===========================
+
+def _same_grid(src_transform, src_shape, dst_transform, dst_shape, tol=1e-12):
+    """
+    Return True if two grids have the same shape and transform (within tolerance).
+    """
+    if src_shape != dst_shape:
+        return False
+
+    a = src_transform
+    b = dst_transform
+    return (
+        abs(a.a - b.a) < tol and
+        abs(a.b - b.b) < tol and
+        abs(a.c - b.c) < tol and
+        abs(a.d - b.d) < tol and
+        abs(a.e - b.e) < tol and
+        abs(a.f - b.f) < tol
+    )
+
+
+def align_population_to_gridmet(
+    pop_path: str,
+    gridmet_shape: tuple,
+    gridmet_transform,
+    gridmet_crs="EPSG:4326",
+):
+    """
+    Read population GeoTIFF (counts per pixel) and realign to exactly match the gridMET grid
+    (gridmet_shape + gridmet_transform). Uses nearest-neighbor resampling (appropriate for counts).
+
+    Returns
+    -------
+    np.ndarray (float32)
+        Population counts aligned to gridMET grid (same shape as gridMET).
+    """
+    with rasterio.open(pop_path) as src:
+        pop = src.read(1).astype(np.float32)
+
+        # Replace nodata/NaN with 0 people
+        if src.nodata is not None:
+            pop = np.where(pop == src.nodata, 0.0, pop)
+        pop = np.where(np.isfinite(pop), pop, 0.0)
+        pop[pop < 0] = 0.0
+
+        src_transform = src.transform
+        src_shape = (src.height, src.width)
+
+        # If CRS missing, assume EPSG:4326 (common for global lat/lon products)
+        src_crs = src.crs if src.crs is not None else gridmet_crs
+
+        # Fast-path: already aligned
+        if _same_grid(src_transform, src_shape, gridmet_transform, gridmet_shape):
+            LOGGER.info("Population grid matches gridMET grid exactly; no warp needed.")
+            return pop
+
+        LOGGER.info("Warping population to gridMET grid (same resolution; snapping origin/extent).")
+
+        dst = np.zeros(gridmet_shape, dtype=np.float32)
+
+        reproject(
+            source=pop,
+            destination=dst,
+            src_transform=src_transform,
+            src_crs=src_crs,
+            dst_transform=gridmet_transform,
+            dst_crs=gridmet_crs,
+            resampling=Resampling.nearest,  # IMPORTANT for counts
+            src_nodata=0.0,
+            dst_nodata=0.0,
+        )
+
+        dst = np.where(np.isfinite(dst), dst, 0.0)
+        dst[dst < 0] = 0.0
+        return dst
 
 
 def load_population_weights(cfg, gridmet_shape, gridmet_transform, downscaling_factor=1):
     """
     Load population data and align it with gridMET raster grid.
-    
-    Parameters
-    ----------
-    cfg : omegaconf.DictConfig
-        Configuration object
-    gridmet_shape : tuple
-        Shape of gridMET raster (H, W)
-    gridmet_transform : affine.Affine
-        Affine transform of gridMET raster
-    downscaling_factor : int
-        Factor by which gridMET was downscaled
-        
+
+    IMPORTANT:
+    - Population weights should be counts-per-pixel.
+    - If gridMET is downscaled (e.g., factor=5), do NOT use zoom() on population.
+      Instead, warp/snap population GeoTIFF to the exact gridMET grid definition.
+
     Returns
     -------
     ndarray or None
@@ -56,53 +129,44 @@ def load_population_weights(cfg, gridmet_shape, gridmet_transform, downscaling_f
     """
     if not cfg.population.weighting.enabled:
         return None
-    
+
     pop_type = cfg.get('population_type', cfg.population.default_type)
     pop_config = cfg.population[pop_type]
     year = cfg.year
-    
+
     # Check if population data exists for this year
     if year not in pop_config.file_map:
         LOGGER.warning(f"No population data available for year {year}")
         LOGGER.warning(f"Available years: {list(pop_config.file_map.keys())}")
         LOGGER.warning("Proceeding with unweighted aggregation")
         return None
-    
+
     # Construct population file path
     pop_dir = cfg.population.data_dir
     pop_filename = pop_config.file_map[year]['filename']
     pop_path = f"{pop_dir}/{pop_type}/{pop_filename}"
-    
+
     try:
         LOGGER.info(f"Loading population {pop_type} data from: {pop_path}")
-        
-        # Load population raster
-        import rasterio
-        with rasterio.open(pop_path) as src:
-            pop_data = src.read(1).astype(np.float32)
-            pop_transform = src.transform
-        
-        # Check if population data needs resampling to match gridMET resolution
-        # For now, we assume they're on compatible grids
-        # TODO: Add proper resampling/alignment if resolutions differ
-        
-        # Apply same downscaling as gridMET if needed
-        if downscaling_factor > 1:
-            pop_data = zoom(pop_data, downscaling_factor, order=1)
-            LOGGER.info(f"Downscaled population data by factor {downscaling_factor}")
-        
-        # Handle negative values and NaNs in population data
-        pop_data[pop_data < 0] = 0
-        pop_data[np.isnan(pop_data)] = 0
-        
-        LOGGER.info(f"Loaded population weights (shape: {pop_data.shape})")
-        LOGGER.info(f"Total population: {np.sum(pop_data):,.0f}")
-        
+
+        # We assume lon/lat grid for gridMET derived from NetCDF coordinates
+        gridmet_crs = getattr(cfg, "gridmet_crs", "EPSG:4326")
+
+        # Align population GeoTIFF to the gridMET grid (shape + transform)
+        pop_data = align_population_to_gridmet(
+            pop_path=pop_path,
+            gridmet_shape=gridmet_shape,
+            gridmet_transform=gridmet_transform,
+            gridmet_crs=gridmet_crs,
+        )
+
+        LOGGER.info(f"Population weights aligned (shape: {pop_data.shape})")
+        LOGGER.info(f"Total population (aligned): {np.sum(pop_data):,.0f}")
+
         return pop_data
-        
+
     except FileNotFoundError:
         LOGGER.error(f"Population file not found: {pop_path}")
-        LOGGER.warning("Please run: python src/download_population.py year={year}")
         LOGGER.warning("Proceeding with unweighted aggregation")
         return None
     except Exception as e:
@@ -119,7 +183,6 @@ def main(cfg):
 
     # load shapefile
     LOGGER.info("Loading shapefile...")
-    # use previously available shapefile
     shapefile_years_list = list(cfg.shapefiles.years)
     shapefile_year = available_shapefile_year(cfg.year, shapefile_years_list)
     shapefile_nm = cfg.shapefiles.prefix + str(shapefile_year)
@@ -134,22 +197,23 @@ def main(cfg):
     layer_name = list(ds.keys())[0]
     layer = ds[layer_name]
 
-    # langitued/latitude info used for affine transform
+    # longitude/latitude info used for affine transform
     lon = layer.lon.values
     lat = layer.lat.values
     dlon = (lon[1] - lon[0]) / cfg.downscaling_factor
     dlat = (lat[0] - lat[1]) / cfg.downscaling_factor
 
-    # first time computing mapping from vector geometries to raster cells
     LOGGER.info("Mapping polygons to raster cells...")
 
-    x = layer.values[0].astype(np.float32)  # 32-bit improves memory after downscaling
+    # reference array to define shape after downscaling
+    x = layer.values[0].astype(np.float32)
 
     if cfg.downscaling_factor > 1:
         x = zoom(x, cfg.downscaling_factor, order=1)
-        LOGGER.info(f"(downscaled by factor {cfg.downscaling_factor})")
+        LOGGER.info(f"(gridMET downscaled by factor {cfg.downscaling_factor})")
 
     transform = rasterio.transform.from_origin(lon[0], lat[0], dlon, dlat)
+
     poly2cells = polygon_to_raster_cells(
         polygon.geometry.values,
         x,
@@ -158,32 +222,31 @@ def main(cfg):
         nodata=np.nan,
         verbose=cfg.show_progress,
     )
-    
-    # Load population weights if enabled
+
+    # Load population weights if enabled (aligned to downscaled grid)
     population_weights = load_population_weights(
-        cfg, 
-        x.shape, 
-        transform, 
+        cfg,
+        x.shape,
+        transform,
         cfg.downscaling_factor
     )
-    
+
     if population_weights is not None:
         LOGGER.info(f"Using population-weighted aggregation ({cfg.population.default_type})")
     else:
         LOGGER.info("Using unweighted aggregation (simple mean)")
 
-    df_chunks = []  # collects the results for each day
+    df_chunks = []
 
     LOGGER.info("Computing zonal stats for each day...")
     for i, day in tqdm(enumerate(layer.day.values), disable=(not cfg.show_progress)):
-        x = layer.sel(day=day).values.astype(np.float32)  # reference array
+        x_day = layer.sel(day=day).values.astype(np.float32)
         if cfg.downscaling_factor > 1:
-            x = zoom(x, cfg.downscaling_factor, order=1)
+            x_day = zoom(x_day, cfg.downscaling_factor, order=1)
 
-        # Use the new compute_zonal_stats function with optional weights
         stats = compute_zonal_stats(
-            x, 
-            poly2cells, 
+            x_day,
+            poly2cells,
             weights=population_weights,
             stat='mean'
         )
@@ -192,32 +255,27 @@ def main(cfg):
             {"day": day, cfg.var: stats},
             index=pd.Index(polygon_ids, name=cfg.polygon_name),
         )
-
         df_chunks.append(df)
 
         if i == 0 and cfg.plot_output:
-            # convert to geopandas for image
-            gdf = gpd.GeoDataFrame(
-                df, geometry=polygon.geometry.values, crs=polygon.crs
-            )
+            gdf = gpd.GeoDataFrame(df, geometry=polygon.geometry.values, crs=polygon.crs)
             logging_dir = HydraConfig.get().runtime.output_dir
+
             png_path = f"{logging_dir}/{cfg.var}_{cfg.polygon_name}_{cfg.year}.png"
             gdf.plot(column=cfg.var, legend=True)
             plt.savefig(png_path)
+
             gdf["dummy"] = 1
             gdf.plot(column="dummy", legend=False)
             png_path = f"{logging_dir}/dummy_{cfg.polygon_name}_{cfg.year}.png"
-            # plot in continental us bounds
+
             plt.xlim(-125, -65)
             plt.ylim(25, 50)
-            # save with higher resolution
             plt.savefig(png_path, dpi=300)
             LOGGER.info("Plotted result.")
 
-    # concatenate all the days
     df = pd.concat(df_chunks)
 
-    # == save output file
     output_filename = f"{cfg.var}_{cfg.year}_{cfg.polygon_name}.parquet"
     output_path = f"data/{geo_name}/intermediate/{output_filename}"
     df.to_parquet(output_path)
@@ -225,3 +283,4 @@ def main(cfg):
 
 if __name__ == "__main__":
     main()
+
