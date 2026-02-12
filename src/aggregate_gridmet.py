@@ -12,7 +12,7 @@ from scipy.ndimage import zoom
 from hydra.core.hydra_config import HydraConfig
 import sys
 sys.path.append('./')
-from utils.faster_zonal_stats import polygon_to_raster_cells
+from utils.faster_zonal_stats import polygon_to_raster_cells, compute_zonal_stats
 
 
 # configure logger to print at info level
@@ -32,6 +32,83 @@ def available_shapefile_year(year, shapefile_years_list: list):
     return min(
         shapefile_years_list
     )  # Returns the last element if year is greater than the last element
+
+
+def load_population_weights(cfg, gridmet_shape, gridmet_transform, downscaling_factor=1):
+    """
+    Load population data and align it with gridMET raster grid.
+    
+    Parameters
+    ----------
+    cfg : omegaconf.DictConfig
+        Configuration object
+    gridmet_shape : tuple
+        Shape of gridMET raster (H, W)
+    gridmet_transform : affine.Affine
+        Affine transform of gridMET raster
+    downscaling_factor : int
+        Factor by which gridMET was downscaled
+        
+    Returns
+    -------
+    ndarray or None
+        Population weights array matching gridMET dimensions, or None if disabled
+    """
+    if not cfg.population.weighting.enabled:
+        return None
+    
+    pop_type = cfg.get('population_type', cfg.population.default_type)
+    pop_config = cfg.population[pop_type]
+    year = cfg.year
+    
+    # Check if population data exists for this year
+    if year not in pop_config.file_map:
+        LOGGER.warning(f"No population data available for year {year}")
+        LOGGER.warning(f"Available years: {list(pop_config.file_map.keys())}")
+        LOGGER.warning("Proceeding with unweighted aggregation")
+        return None
+    
+    # Construct population file path
+    pop_dir = cfg.population.data_dir
+    pop_filename = pop_config.file_map[year]['filename']
+    pop_path = f"{pop_dir}/{pop_type}/{pop_filename}"
+    
+    try:
+        LOGGER.info(f"Loading population {pop_type} data from: {pop_path}")
+        
+        # Load population raster
+        import rasterio
+        with rasterio.open(pop_path) as src:
+            pop_data = src.read(1).astype(np.float32)
+            pop_transform = src.transform
+        
+        # Check if population data needs resampling to match gridMET resolution
+        # For now, we assume they're on compatible grids
+        # TODO: Add proper resampling/alignment if resolutions differ
+        
+        # Apply same downscaling as gridMET if needed
+        if downscaling_factor > 1:
+            pop_data = zoom(pop_data, downscaling_factor, order=1)
+            LOGGER.info(f"Downscaled population data by factor {downscaling_factor}")
+        
+        # Handle negative values and NaNs in population data
+        pop_data[pop_data < 0] = 0
+        pop_data[np.isnan(pop_data)] = 0
+        
+        LOGGER.info(f"Loaded population weights (shape: {pop_data.shape})")
+        LOGGER.info(f"Total population: {np.sum(pop_data):,.0f}")
+        
+        return pop_data
+        
+    except FileNotFoundError:
+        LOGGER.error(f"Population file not found: {pop_path}")
+        LOGGER.warning("Please run: python src/download_population.py year={year}")
+        LOGGER.warning("Proceeding with unweighted aggregation")
+        return None
+    except Exception as e:
+        LOGGER.error(f"Error loading population data: {e}")
+        LOGGER.warning("Proceeding with unweighted aggregation")
+        return None
 
 
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
@@ -81,29 +158,35 @@ def main(cfg):
         nodata=np.nan,
         verbose=cfg.show_progress,
     )
+    
+    # Load population weights if enabled
+    population_weights = load_population_weights(
+        cfg, 
+        x.shape, 
+        transform, 
+        cfg.downscaling_factor
+    )
+    
+    if population_weights is not None:
+        LOGGER.info(f"Using population-weighted aggregation ({cfg.population.default_type})")
+    else:
+        LOGGER.info("Using unweighted aggregation (simple mean)")
 
     df_chunks = []  # collects the results for each day
 
     LOGGER.info("Computing zonal stats for each day...")
     for i, day in tqdm(enumerate(layer.day.values), disable=(not cfg.show_progress)):
-        stats = []
         x = layer.sel(day=day).values.astype(np.float32)  # reference array
         if cfg.downscaling_factor > 1:
             x = zoom(x, cfg.downscaling_factor, order=1)
 
-        for indices in poly2cells:
-            if len(indices[0]) == 0:
-                # no cells found for this polygon
-                stats.append(np.nan)
-            else:
-                cells = x[indices]
-                if sum(~np.isnan(cells)) == 0:
-                    # no valid cells found for this polygon
-                    stats.append(np.nan)
-                    continue
-                else:
-                    # compute mean of valid cells
-                    stats.append(np.nanmean(cells))
+        # Use the new compute_zonal_stats function with optional weights
+        stats = compute_zonal_stats(
+            x, 
+            poly2cells, 
+            weights=population_weights,
+            stat='mean'
+        )
 
         df = pd.DataFrame(
             {"day": day, cfg.var: stats},
