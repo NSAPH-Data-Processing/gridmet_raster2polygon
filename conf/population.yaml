@@ -12,28 +12,24 @@ data_dir: /n/dominici_lab/Lab/data_processing/shreya_gridmet_raster2polygon/grid
 
 # Population weighting configuration
 weighting:
-  enabled: false  # Set to true to enable population weighting
+  enabled: true  # Set to true to enable population weighting
   method: mean    # Options: mean (population-weighted mean)
 
 # Population Count Data Configuration
 count:
-  doi: "https://doi.org/10.7910/DVN/C0LVYI"
+  doi: "doi:10.7910/DVN/C0LVYI"
   description: "Annual population counts at grid cell level"
-  resolution: "1km x 1km grid"
   coverage: "Contiguous United States"
   
   # File mappings for different years
-  # Add file_id from Dataverse or direct URL
   file_map:
     2000:
-      filename: "population_count_2000.tif"
-      file_id: null  # Add Dataverse file ID here
-      url: null      # Or add direct download URL
+      filename: "gpw-v4-population-count-rev11_2000_2pt5_min_tif.zip"
+    2005:
+      filename: "gpw-v4-population-count-rev11_2005_2pt5_min_tif.zip"
     2010:
-      filename: "population_count_2010.tif"
-      file_id: null
-      url: null
-    2020:
-      filename: "population_count_2020.tif"
-      file_id: null
-      url: null
+      filename: "gpw-v4-population-count-rev11_2010_2pt5_min_tif.zip"
+    2015:
+      filename: "gpw-v4-population-count-rev11_2015_2pt5_min_tif.zip"
+    2020:   
+      filename: "gpw-v4-population-count-rev11_2020_2pt5_min_tif.zip"
