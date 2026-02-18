@@ -15,6 +15,7 @@ import os
 import logging
 import hydra
 import requests
+import zipfile
 from pathlib import Path
 from pyDataverse.api import DataAccessApi, NativeApi
 
@@ -34,13 +35,12 @@ def main(cfg):
     """
     
     population_cfg = cfg.population
-    population_type = cfg.get('population_type', population_cfg.default_type)
     year = cfg.get('year', cfg.year)
     
-    # Get configuration for the selected population type
-    pop_config = population_cfg[population_type]
+    # Always use population count
+    pop_config = population_cfg.count
     
-    LOGGER.info(f"Downloading population {population_type} data for year {year}")
+    LOGGER.info(f"Downloading population count data for year {year}")
     LOGGER.info(f"DOI: {pop_config.doi}")
     
     # Connect to Dataverse
@@ -60,8 +60,8 @@ def main(cfg):
         file_info = pop_config.file_map[year]
         target_filename = file_info['filename']
         
-        # Construct output path
-        output_dir = Path(population_cfg.data_dir) / population_type
+        # Construct output path (always use 'count' subdirectory)
+        output_dir = Path(population_cfg.data_dir) / 'count'
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / target_filename
         
@@ -90,6 +90,17 @@ def main(cfg):
             f.write(response.content)
         
         LOGGER.info(f"Downloaded to: {output_path}")
+        
+        # Extract if it's a zip file
+        if target_filename.endswith('.zip'):
+            extract_dir = output_dir / target_filename.replace('.zip', '')
+            extract_dir.mkdir(parents=True, exist_ok=True)
+            
+            LOGGER.info(f"Extracting {target_filename} to {extract_dir}...")
+            with zipfile.ZipFile(output_path, 'r') as zip_ref:
+                zip_ref.extractall(extract_dir)
+            
+            LOGGER.info(f"Extraction complete. Files extracted to: {extract_dir}")
         
     else:
         LOGGER.warning(f"No file mapping found for year {year}")
