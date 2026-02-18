@@ -130,8 +130,8 @@ def load_population_weights(cfg, gridmet_shape, gridmet_transform, downscaling_f
     if not cfg.population.weighting.enabled:
         return None
 
-    pop_type = cfg.get('population_type', cfg.population.default_type)
-    pop_config = cfg.population[pop_type]
+    # Always use population count for weighting
+    pop_config = cfg.population.count
     year = cfg.year
 
     # Check if population data exists for this year
@@ -144,10 +144,10 @@ def load_population_weights(cfg, gridmet_shape, gridmet_transform, downscaling_f
     # Construct population file path
     pop_dir = cfg.population.data_dir
     pop_filename = pop_config.file_map[year]['filename']
-    pop_path = f"{pop_dir}/{pop_type}/{pop_filename}"
+    pop_path = f"{pop_dir}/count/{pop_filename}"
 
     try:
-        LOGGER.info(f"Loading population {pop_type} data from: {pop_path}")
+        LOGGER.info(f"Loading population count data from: {pop_path}")
 
         # We assume lon/lat grid for gridMET derived from NetCDF coordinates
         gridmet_crs = getattr(cfg, "gridmet_crs", "EPSG:4326")
@@ -232,7 +232,7 @@ def main(cfg):
     )
 
     if population_weights is not None:
-        LOGGER.info(f"Using population-weighted aggregation ({cfg.population.default_type})")
+        LOGGER.info("Using population-weighted aggregation (count)")
     else:
         LOGGER.info("Using unweighted aggregation (simple mean)")
 
