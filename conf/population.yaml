@@ -4,11 +4,8 @@
 # Data source from Harvard Dataverse:
 # - Population Count: https://doi.org/10.7910/DVN/C0LVYI
 
-# Default population type to use for weighting
-default_type: count
-
 # Directory to store population data
-data_dir: /n/dominici_lab/Lab/data_processing/shreya_gridmet_raster2polygon/gridmet_raster2polygon/data/population
+data_dir: data/input/population
 
 # Population weighting configuration
 weighting:
