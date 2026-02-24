@@ -38,13 +38,27 @@ def available_shapefile_year(year, shapefile_years_list: list):
 
 def _same_grid(src_transform, src_shape, dst_transform, dst_shape, tol=1e-12):
     """
-    Return True if two grids have the same shape and transform (within tolerance).
+    Determine if two rasters represent the *same grid*.
+
+    We check:
+    - array shape: (height, width)
+    - affine transform: six parameters (a, b, c, d, e, f)
+
+    Why this matters:
+    - Population weighting requires weights and values to be aligned cell-by-cell.
+    - If grids differ, we must reproject/warp population onto the gridMET grid.
+
+    tol:
+    - floating-point transforms can have tiny numeric differences; we allow a tolerance.
     """
     if src_shape != dst_shape:
         return False
 
     a = src_transform
     b = dst_transform
+    
+    # Compare each affine parameter within tolerance.
+    # a.a and a.e represent pixel sizes (x and y); a.c and a.f represent origin offsets.
     return (
         abs(a.a - b.a) < tol and
         abs(a.b - b.b) < tol and
@@ -77,10 +91,10 @@ def align_population_to_gridmet(pop_path: str, gridmet_shape: tuple,gridmet_tran
         src_transform = src.transform
         src_shape = (src.height, src.width)
 
-        # If CRS missing, assume EPSG:4326 (common for global lat/lon products)
+        # If CRS missing, assume EPSG:4326
         src_crs = src.crs if src.crs is not None else gridmet_crs
 
-        # Fast-path: already aligned
+        # Check if population grid matches gridMET grid exactly (same shape + transform)
         if _same_grid(src_transform, src_shape, gridmet_transform, gridmet_shape):
             LOGGER.info("Population grid matches gridMET grid exactly; no warp needed.")
             return pop
@@ -96,7 +110,7 @@ def align_population_to_gridmet(pop_path: str, gridmet_shape: tuple,gridmet_tran
             src_crs=src_crs,
             dst_transform=gridmet_transform,
             dst_crs=gridmet_crs,
-            resampling=Resampling.nearest,  # IMPORTANT for counts
+            resampling=Resampling.nearest, 
             src_nodata=0.0,
             dst_nodata=0.0,
         )
@@ -143,7 +157,7 @@ def load_population_weights(cfg, gridmet_shape, gridmet_transform, downscaling_f
     try:
         LOGGER.info(f"Loading population count data from: {pop_path}")
 
-        # We assume lon/lat grid for gridMET derived from NetCDF coordinates
+        # assume lon/lat grid for gridMET derived from NetCDF coordinates
         gridmet_crs = getattr(cfg, "gridmet_crs", "EPSG:4326")
 
         # Align population GeoTIFF to the gridMET grid (shape + transform)
