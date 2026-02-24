@@ -33,7 +33,7 @@ def available_shapefile_year(year, shapefile_years_list: list):
 
 
 # ===========================
-# NEW: Grid alignment helpers
+# Grid alignment helpers
 # ===========================
 
 def _same_grid(src_transform, src_shape, dst_transform, dst_shape, tol=1e-12):
@@ -58,7 +58,7 @@ def _same_grid(src_transform, src_shape, dst_transform, dst_shape, tol=1e-12):
 def align_population_to_gridmet(pop_path: str, gridmet_shape: tuple,gridmet_transform, gridmet_crs="EPSG:4326"):
     """
     Read population GeoTIFF (counts per pixel) and realign to exactly match the gridMET grid
-    (gridmet_shape + gridmet_transform). Uses nearest-neighbor resampling (appropriate for counts).
+    (gridmet_shape + gridmet_transform). Uses nearest-neighbor resampling.
 
     Returns
     -------
@@ -276,4 +276,3 @@ def main(cfg):
 
 if __name__ == "__main__":
     main()
-
