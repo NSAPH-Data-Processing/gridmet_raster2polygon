@@ -8,9 +8,7 @@ import hydra
 import logging
 import matplotlib.pyplot as plt
 from scipy.ndimage import zoom
-
 from rasterio.warp import reproject, Resampling 
-
 from hydra.core.hydra_config import HydraConfig
 import sys
 sys.path.append('./')
@@ -245,9 +243,7 @@ def main(cfg):
             x_day,
             poly2cells,
             weights=population_weights,
-            stat='mean'
-        )
-
+        
         df = pd.DataFrame(
             {"day": day, cfg.var: stats},
             index=pd.Index(polygon_ids, name=cfg.polygon_name),

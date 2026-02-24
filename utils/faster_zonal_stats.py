@@ -99,7 +99,7 @@ def polygon_to_raster_cells(
         return cell_map
 
 
-def compute_zonal_stats(raster_values, cell_map, weights=None, stat='mean'):
+def compute_zonal_stats(raster_values, cell_map, weights=None):
     """
     Compute zonal statistics for polygons using precomputed cell mapping.
     
@@ -112,8 +112,6 @@ def compute_zonal_stats(raster_values, cell_map, weights=None, stat='mean'):
     weights : ndarray, optional
         2D array of weights (e.g., population) matching raster dimensions.
         If provided, computes weighted statistics.
-    stat : str
-        Statistic to compute: 'mean', 'sum', 'min', 'max'
         
     Returns
     -------
@@ -141,35 +139,16 @@ def compute_zonal_stats(raster_values, cell_map, weights=None, stat='mean'):
         valid_cells = cells[valid_mask]
         
         if weights is not None:
-            # Extract weights for this polygon
+            # Weighted mean: sum(value * weight) / sum(weight)
             cell_weights = weights[indices]
             valid_weights = cell_weights[valid_mask]
-            
-            # Compute weighted statistic
-            if stat == 'mean':
-                # Weighted mean: sum(value * weight) / sum(weight)
-                if np.sum(valid_weights) > 0:
-                    result = np.sum(valid_cells * valid_weights) / np.sum(valid_weights)
-                else:
-                    result = np.nan
-            elif stat == 'sum':
-                # Weighted sum
-                result = np.sum(valid_cells * valid_weights)
-            else:
-                # For min/max, weights don't apply
-                result = getattr(np, f'nan{stat}')(valid_cells)
-        else:
-            # Unweighted statistic
-            if stat == 'mean':
-                result = np.nanmean(valid_cells)
-            elif stat == 'sum':
-                result = np.nansum(valid_cells)
-            elif stat == 'min':
-                result = np.nanmin(valid_cells)
-            elif stat == 'max':
-                result = np.nanmax(valid_cells)
+            if np.sum(valid_weights) > 0:
+                result = np.sum(valid_cells * valid_weights) / np.sum(valid_weights)
             else:
                 result = np.nan
+        else:
+            # Unweighted mean
+            result = np.nanmean(valid_cells)
         
         stats.append(result)
     
