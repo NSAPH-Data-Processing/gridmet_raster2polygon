@@ -3,5 +3,5 @@ years:
   - 2000
   - 2010
   - 2020
-idvar: "GEOID"
+idvar: "zcta"  # Column name in the shapefile
 prefix: "us__shapefile__census__zcta_yearly__"
