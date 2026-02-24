@@ -9,7 +9,7 @@ import logging
 import matplotlib.pyplot as plt
 from scipy.ndimage import zoom
 
-from rasterio.warp import reproject, Resampling  # NEW
+from rasterio.warp import reproject, Resampling 
 
 from hydra.core.hydra_config import HydraConfig
 import sys
@@ -57,12 +57,7 @@ def _same_grid(src_transform, src_shape, dst_transform, dst_shape, tol=1e-12):
     )
 
 
-def align_population_to_gridmet(
-    pop_path: str,
-    gridmet_shape: tuple,
-    gridmet_transform,
-    gridmet_crs="EPSG:4326",
-):
+def align_population_to_gridmet(pop_path: str, gridmet_shape: tuple,gridmet_transform, gridmet_crs="EPSG:4326"):
     """
     Read population GeoTIFF (counts per pixel) and realign to exactly match the gridMET grid
     (gridmet_shape + gridmet_transform). Uses nearest-neighbor resampling (appropriate for counts).
@@ -143,7 +138,8 @@ def load_population_weights(cfg, gridmet_shape, gridmet_transform, downscaling_f
 
     # Construct population file path
     pop_dir = cfg.population.data_dir
-    pop_filename = pop_config.file_map[year]['filename']
+    # Use the first file from the 'files' list (the actual .tif inside the zip)
+    pop_filename = pop_config.file_map[year]['files'][0]
     pop_path = f"{pop_dir}/count/{pop_filename}"
 
     try:
@@ -239,7 +235,8 @@ def main(cfg):
     df_chunks = []
 
     LOGGER.info("Computing zonal stats for each day...")
-    for i, day in tqdm(enumerate(layer.day.values), disable=(not cfg.show_progress)):
+    # TESTING: Process only first 10 days - REMEMBER TO CHANGE BACK TO layer.day.values!
+    for i, day in tqdm(enumerate(layer.day.values[:10]), disable=(not cfg.show_progress)):
         x_day = layer.sel(day=day).values.astype(np.float32)
         if cfg.downscaling_factor > 1:
             x_day = zoom(x_day, cfg.downscaling_factor, order=1)
