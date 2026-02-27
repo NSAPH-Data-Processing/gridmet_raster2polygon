@@ -157,6 +157,42 @@ It is also possible to run this script to aggregate based on your own custom sha
 ```
 NB: this pipeline expects shapefiles to be stored in paths of the form `{shapefile_prefix}_{shapefile_year}/{shapefile_prefix}_{shapefile_year}.shp`
 
+## Population Weighting (Optional)
+
+This pipeline supports **population-weighted aggregation** of gridMET variables, which provides more accurate estimates of human exposure to meteorological conditions by weighting grid cells by their population.
+
+### Quick Start
+
+1. **Enable population weighting** in `conf/population.yaml`:
+   ```yaml
+   weighting:
+     enabled: true
+   ```
+
+2. **Download population data**:
+   ```bash
+   python src/download_population.py population_type=count year=2010
+   ```
+
+3. **Run the pipeline** (weighting will be automatically applied):
+   ```bash
+   snakemake --cores 4
+   ```
+
+### Data Source
+
+- **Population Count**: https://doi.org/10.7910/DVN/C0LVYI
+
+### Documentation
+
+For detailed information about:
+- Configuration options
+- File management
+- Technical details
+- Validation methods
+
+See: **[docs/POPULATION_WEIGHTING.md](docs/POPULATION_WEIGHTING.md)**
+
 ## Pipeline
 
 You can run the snakemake pipeline described in the Snakefile.
@@ -190,3 +226,11 @@ If you want to build your own image use from the Dockerfile int the GitHub repos
 docker build -t <image_name> .
 ```
 
+## Population weighting 
+
+To make our lives easier, we will downscale gridmet by a factor of 5 instead of 4. 
+~4-km, 1/24th degree/5 --> 0.00833 degree which is equivalent to 30 arc seconds --> this is the finest resolution of population count and density data that we have 
+
+From here, all we need to do is "snap" or realign the population grid to the gridmet grid. other. Then, we calculate the population weights and apply them to the gridmet data
+
+finally, we aggregate to zcta and county polygons 

@@ -5,6 +5,7 @@ dirs:
   input:
     raw: null
     shapefiles: null
+    population: null
 
   intermediate: null
 

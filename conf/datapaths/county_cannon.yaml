@@ -4,13 +4,17 @@ name: county
 dirs:
   input:
     raw: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/raw
-    shapefiles: /n/dominici_lab/lab/lego/geoboundaries/us_geoboundaries__census/us_shapefile__census/county_yearly/
+    shapefiles: /n/dominici_lab/lab/lego/geoboundaries/us_geoboundaries__census/us_shapefile__census/county_yearly
+    population: /n/dominici_lab/lab/lego/social/world_population__sedac
 
   intermediate: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/.county_daily__intermediate
 
-  output:
+  output: 
     core: 
-      daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/core/county_daily
-      yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/core/county_yearly
+      daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/county_daily
+      yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/county_yearly
+    population_weighted:
+      daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/population_weighted/county_daily
+      yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/population_weighted/county_yearly
     seasonal: 
       yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/seasonal/county_yearly

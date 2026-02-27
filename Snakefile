@@ -1,7 +1,7 @@
 import yaml
 import os
 import hydra
-from src.aggregate_gridmet import available_shapefile_year
+from src.aggregate_gridmet import latest_available_year
 
 conda: "requirements.yaml"
 configfile: "conf/snakemake.yaml"
@@ -49,9 +49,18 @@ rule download_gridmet:
     shell:
         "python src/download_gridmet.py year={wildcards.year} var={wildcards.var} 2> {log.err}"
 
+rule download_population:
+    output:
+        "data/input/population/count/gpw-v4-population-count-rev11_{year}_2pt5_min_tif.zip",
+    log:
+        err="logs/download_population_{year}.log",
+    shell:
+        "python src/download_population.py year={wildcards.year} 2> {log.err}"
+
 rule aggregate_gridmet:
     input:
-        f"data/{geo_name}/input/raw/{{var}}_{{year}}.nc",
+        gridmet=f"data/{geo_name}/input/raw/{{var}}_{{year}}.nc",
+        population="data/input/population/count/gpw-v4-population-count-rev11_{year}_2pt5_min_tif.zip" if hydra_cfg.population.weighting.enabled else [],
     output:
         f"data/{geo_name}/intermediate/{{var}}_{{year}}_{shapefiles}.parquet",
     log:
