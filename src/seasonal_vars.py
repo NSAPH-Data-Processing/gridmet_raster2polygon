@@ -66,7 +66,7 @@ def main(cfg):
     conn = duckdb.connect()
     
     # Load current year data only
-    data_dir = Path(f"data/{geo_name}/output/daily")
+    data_dir = Path(f"data/{geo_name}/output/core/daily")
     current_year_file = data_dir / f"meteorology__gridmet__{polygon_name}_daily__{year}.parquet"
     
     if not current_year_file.exists():
@@ -172,9 +172,8 @@ def main(cfg):
     LOGGER.info(f"\n{sample.to_string()}")
     
     # Write output to parquet file
-    output_path = output_dir / f"meteorology__gridmet__{polygon_name}_seasonal__{year}.parquet"
+    output_path = f"data/{geo_name}/output/seasonal/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet"
     LOGGER.info(f"Writing output to: {output_path}")
-    
     conn.execute(f"""
         COPY seasonal_combined
         TO '{output_path}'

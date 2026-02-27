@@ -24,7 +24,7 @@ def main(cfg):
                 EXTRACT(YEAR FROM date) AS year,
                 {', '.join(gridmet_vars)}
             FROM 
-                'data/{geo_name}/output/daily/meteorology__gridmet__{cfg.polygon_name}_daily__{cfg.year}.parquet'
+                'data/{geo_name}/output/core/daily/meteorology__gridmet__{cfg.polygon_name}_daily__{cfg.year}.parquet'
         )
     """)
 
@@ -56,10 +56,10 @@ def main(cfg):
                  FROM gridmet_yearly_stats
                  ORDER BY year, {cfg.polygon_name}
             ) 
-        TO 'data/{geo_name}/output/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet'
+        TO 'data/{geo_name}/output/core/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet'
     """)
     
-    LOGGER.info(f"Outputted yearly stats table to 'data/{geo_name}/output/yearly/meteorology_{cfg.polygon_name}_yearly_{cfg.year}.parquet'")
+    LOGGER.info(f"Outputted yearly stats table to 'data/{geo_name}/output/core/yearly/meteorology_{cfg.polygon_name}_yearly_{cfg.year}.parquet'")
     conn.close()
 
 if __name__ == "__main__":

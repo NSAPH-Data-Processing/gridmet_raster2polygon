@@ -33,7 +33,7 @@ print(f"geo_name resolved to: {geo_name}")
 rule all:
     input:
         expand(
-            f"data/{geo_name}/output/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
+            f"data/{geo_name}/output/core/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
             year=years
         ),
         expand(
@@ -72,7 +72,7 @@ rule format_gridmet:
             year="{year}"
         ),
     output:
-        f"data/{geo_name}/output/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
+        f"data/{geo_name}/output/core/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
     log:
         f"logs/{geo_name}/format_gridmet_{{year}}.log",
     shell:
@@ -82,11 +82,11 @@ rule format_gridmet:
 
 rule get_yearly:
     input:
-        f"data/{geo_name}/output/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
+        f"data/{geo_name}/output/core/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
     output:
-        f"data/{geo_name}/output/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
+        f"data/{geo_name}/output/core/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
     log:
-        f"logs/{geo_name}/format_gridmet_{{year}}.log",
+        f"logs/{geo_name}/get_yearly_{{year}}.log",
     shell:
         """
         python src/get_yearly.py year={wildcards.year}
@@ -94,7 +94,7 @@ rule get_yearly:
 
 rule get_seasonal:
     input:
-        f"data/{geo_name}/output/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
+        f"data/{geo_name}/output/core/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
     output:
         f"data/{geo_name}/output/seasonal/meteorology__gridmet__{shapefiles}_seasonal__{{year}}.parquet",
     log:
