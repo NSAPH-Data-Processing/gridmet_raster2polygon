@@ -1,15 +1,3 @@
-"""
-Create seasonal aggregates from daily gridMET data for a single year.
-This script reads daily parquet files and creates seasonal averages based on
-configurable season definitions from conf/seasons.yaml.
-
-Default seasons:
-- Summer: June 1 - August 31
-- Winter: January 1 - February 28/29 and December 1 - December 31 (of the same year)
-
-adapted from: https://github.com/NSAPH/National-Causal-Analysis/blob/master/Confounders/earth_engine/code/6_calculate_seasonal_averages.R
-"""
-
 import duckdb
 import hydra
 import logging
