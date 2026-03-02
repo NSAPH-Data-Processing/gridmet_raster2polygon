@@ -37,7 +37,7 @@ rule all:
             year=years
         ),
         expand(
-            f"data/{geo_name}/output/seasonal/meteorology__gridmet__{shapefiles}_seasonal__{{year}}.parquet",
+            f"data/{geo_name}/output/seasonal/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
             year=years
         ),
 
@@ -96,7 +96,7 @@ rule get_seasonal:
     input:
         f"data/{geo_name}/output/core/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
     output:
-        f"data/{geo_name}/output/seasonal/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
+        f"data/{geo_name}/output/seasonal/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
     log:
         f"logs/{geo_name}/get_seasonal_{{year}}.log",
     shell:
