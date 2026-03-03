@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - datapaths: zcta_cannon
+  - datapaths: cannon_core  # cannon_core or cannon_popweighted
   - gridmet
   - snakemake
   - seasons
@@ -16,6 +16,7 @@ shapefile_year: 2020  # used when running download_shapefiles.py standalone
 
 show_progress: false
 plot_output: false  # plots the first day of each var aggregation for debugging
+plot_population_qc: true  # plots population-weighted vs unweighted comparison for QC
 
 hydra:
   run:

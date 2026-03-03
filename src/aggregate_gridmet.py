@@ -7,6 +7,7 @@ import numpy as np
 import hydra
 import logging
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from scipy.ndimage import zoom
 from rasterio.warp import reproject, Resampling 
 from hydra.core.hydra_config import HydraConfig
@@ -120,6 +121,120 @@ def align_population_to_gridmet(pop_path: str, gridmet_shape: tuple,gridmet_tran
         return dst
 
 
+def plot_population_qc(df_weighted, df_unweighted, polygon, cfg, logging_dir):
+    """
+    Generate QC plots comparing population-weighted vs unweighted aggregation.
+
+    Produces a multi-panel figure:
+      1. Time series of daily spatial-mean (weighted vs unweighted)
+      2. Scatter plot of weighted vs unweighted polygon values
+      3. Histogram of per-polygon differences (weighted - unweighted)
+      4. Side-by-side spatial maps for the first available day
+
+    Parameters
+    ----------
+    df_weighted : pd.DataFrame
+        Aggregated data with population weighting (columns: 'day', var).
+    df_unweighted : pd.DataFrame
+        Aggregated data without population weighting (same schema).
+    polygon : gpd.GeoDataFrame
+        Shapefile geometries used for spatial maps.
+    cfg : OmegaConf
+        Hydra configuration object.
+    logging_dir : str
+        Directory to save QC plots.
+    """
+    var = cfg.var
+    year = cfg.year
+    polygon_name = cfg.polygon_name
+    desc = cfg.gridmet.variable_key[var]
+
+    # --- Panel 1: daily spatial-mean time series ---
+    daily_w = df_weighted.groupby("day")[var].mean()
+    daily_u = df_unweighted.groupby("day")[var].mean()
+
+    fig = plt.figure(figsize=(16, 14))
+    gs = gridspec.GridSpec(2, 2, hspace=0.35, wspace=0.3)
+
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.plot(daily_u.index, daily_u.values, label="Unweighted", alpha=0.8, linewidth=1)
+    ax1.plot(daily_w.index, daily_w.values, label="Pop-weighted", alpha=0.8, linewidth=1)
+    ax1.set_xlabel("Day")
+    ax1.set_ylabel(f"{desc} ({var})")
+    ax1.set_title(f"Daily Mean Across All {polygon_name}s ({year})")
+    ax1.legend()
+    ax1.tick_params(axis="x", rotation=45)
+
+    # --- Panel 2: scatter – weighted vs unweighted per polygon-day ---
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax2.scatter(
+        df_unweighted[var].values,
+        df_weighted[var].values,
+        s=2, alpha=0.3, edgecolors="none",
+    )
+    lims = [
+        min(df_unweighted[var].min(), df_weighted[var].min()),
+        max(df_unweighted[var].max(), df_weighted[var].max()),
+    ]
+    ax2.plot(lims, lims, "r--", linewidth=0.8, label="1:1 line")
+    ax2.set_xlabel(f"Unweighted {var}")
+    ax2.set_ylabel(f"Pop-weighted {var}")
+    ax2.set_title("Weighted vs Unweighted (all polygon-days)")
+    ax2.legend(loc="upper left")
+
+    # --- Panel 3: histogram of differences ---
+    diff = df_weighted[var].values - df_unweighted[var].values
+    diff = diff[np.isfinite(diff)]
+    ax3 = fig.add_subplot(gs[1, 0])
+    ax3.hist(diff, bins=60, edgecolor="black", linewidth=0.3, alpha=0.7)
+    ax3.axvline(0, color="red", linestyle="--", linewidth=0.8)
+    ax3.set_xlabel(f"Difference (weighted − unweighted)")
+    ax3.set_ylabel("Count")
+    ax3.set_title(f"Distribution of Differences ({year})")
+    median_diff = np.median(diff) if len(diff) > 0 else 0
+    ax3.text(
+        0.95, 0.95,
+        f"median = {median_diff:.4f}\nstd = {np.std(diff):.4f}",
+        transform=ax3.transAxes, ha="right", va="top",
+        fontsize=9, bbox=dict(facecolor="white", alpha=0.8),
+    )
+
+    # --- Panel 4: spatial map of the first day (weighted vs unweighted) ---
+    first_day = df_weighted["day"].iloc[0]
+    w_first = df_weighted[df_weighted["day"] == first_day][var].values
+    u_first = df_unweighted[df_unweighted["day"] == first_day][var].values
+    spatial_diff = w_first - u_first
+
+    gdf_diff = gpd.GeoDataFrame(
+        {"diff": spatial_diff},
+        geometry=polygon.geometry.values,
+        crs=polygon.crs,
+    )
+    ax4 = fig.add_subplot(gs[1, 1])
+    vmax = max(abs(np.nanmin(spatial_diff)), abs(np.nanmax(spatial_diff)))
+    if vmax == 0:
+        vmax = 1
+    gdf_diff.plot(
+        column="diff", ax=ax4, legend=True, cmap="RdBu_r",
+        vmin=-vmax, vmax=vmax,
+        legend_kwds={"label": f"Δ {var} (weighted − unweighted)", "shrink": 0.6},
+    )
+    ax4.set_title(f"Spatial Difference – {first_day.strftime('%Y-%m-%d') if hasattr(first_day, 'strftime') else first_day}")
+    ax4.set_xlim(-125, -65)
+    ax4.set_ylim(25, 50)
+    ax4.set_axis_off()
+
+    fig.suptitle(
+        f"Population Weighting QC: {desc} ({var}), {year}, {polygon_name}",
+        fontsize=14, fontweight="bold", y=0.98,
+    )
+
+    png_path = f"{logging_dir}/pop_qc_{var}_{polygon_name}_{year}.png"
+    fig.savefig(png_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    LOGGER.info(f"Population QC plot saved to: {png_path}")
+
+
 def load_population_weights(cfg, gridmet_shape, gridmet_transform, downscaling_factor=1):
     """
     Load population data and align it with gridMET raster grid.
@@ -189,18 +304,28 @@ def main(cfg):
     desc = cfg.gridmet.variable_key[cfg.var]
     LOGGER.info(f"Aggregating year={cfg.year} for var={desc} ({cfg.var})")
 
+    # Resolve data root path
+    # Consolidated configs (cannon_core, cannon_popweighted): name=null, append polygon_name
+    # Legacy per-geography configs (county_cannon, etc.): name set, base_path already includes geography
+    base_path = getattr(cfg.datapaths, 'base_path', None)
+    name = getattr(cfg.datapaths, 'name', None)
+    if name is not None:
+        data_root = base_path or f"data/{name}"
+    else:
+        data_root = f"{base_path}/{cfg.polygon_name}"
+    LOGGER.info(f"Using data root: {data_root}")
+
     # load shapefile
     LOGGER.info("Loading shapefile...")
     shapefile_years_list = list(cfg.shapefiles.years)
     shapefile_year = available_shapefile_year(cfg.year, shapefile_years_list)
     shapefile_nm = cfg.shapefiles.prefix + str(shapefile_year)
-    geo_name = cfg.datapaths.name
 
-    shapefile_path = f"data/{geo_name}/input/shapefiles/{shapefile_nm}/{shapefile_nm}.shp"
+    shapefile_path = f"{data_root}/input/shapefiles/{shapefile_nm}/{shapefile_nm}.shp"
     polygon = gpd.read_file(shapefile_path)
     polygon_ids = polygon[cfg.shapefiles.idvar].values
 
-    raster_path = f"data/{geo_name}/input/raw/{cfg.var}_{cfg.year}.nc"
+    raster_path = f"{data_root}/input/raw/{cfg.var}_{cfg.year}.nc"
     ds = xarray.open_dataset(raster_path)
     layer_name = list(ds.keys())[0]
     layer = ds[layer_name]
@@ -245,6 +370,8 @@ def main(cfg):
         LOGGER.info("Using unweighted aggregation (simple mean)")
 
     df_chunks = []
+    df_unweighted_chunks = []  # for QC comparison
+    run_pop_qc = getattr(cfg, "plot_population_qc", False) and population_weights is not None
 
     LOGGER.info("Computing zonal stats for each day...")
     # TESTING: Process only first 10 days - REMEMBER TO CHANGE BACK TO layer.day.values!
@@ -257,12 +384,22 @@ def main(cfg):
             x_day,
             poly2cells,
             weights=population_weights,
-        
+        )
+
         df = pd.DataFrame(
             {"day": day, cfg.var: stats},
             index=pd.Index(polygon_ids, name=cfg.polygon_name),
         )
         df_chunks.append(df)
+
+        # Also compute unweighted stats for QC comparison
+        if run_pop_qc:
+            stats_uw = compute_zonal_stats(x_day, poly2cells, weights=None)
+            df_uw = pd.DataFrame(
+                {"day": day, cfg.var: stats_uw},
+                index=pd.Index(polygon_ids, name=cfg.polygon_name),
+            )
+            df_unweighted_chunks.append(df_uw)
 
         if i == 0 and cfg.plot_output:
             gdf = gpd.GeoDataFrame(df, geometry=polygon.geometry.values, crs=polygon.crs)
@@ -283,8 +420,14 @@ def main(cfg):
 
     df = pd.concat(df_chunks)
 
+    # Generate population weighting QC plots
+    if run_pop_qc:
+        df_unweighted = pd.concat(df_unweighted_chunks)
+        logging_dir = HydraConfig.get().runtime.output_dir
+        plot_population_qc(df, df_unweighted, polygon, cfg, logging_dir)
+
     output_filename = f"{cfg.var}_{cfg.year}_{cfg.polygon_name}.parquet"
-    output_path = f"data/{geo_name}/intermediate/{output_filename}"
+    output_path = f"{data_root}/intermediate/{output_filename}"
     df.to_parquet(output_path)
 
 

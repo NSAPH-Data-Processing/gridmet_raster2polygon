@@ -11,10 +11,16 @@ LOGGER = logging.getLogger(__name__)
 def main(cfg):
     gridmet_vars = cfg.snakemake.gridmet_vars
     geo_name = cfg.datapaths.name
+    base_path = getattr(cfg.datapaths, 'base_path', None)
+    if geo_name is not None:
+        data_root = base_path or f"data/{geo_name}"
+    else:
+        data_root = f"{base_path}/{cfg.polygon_name}"
     conn = duckdb.connect()
 
     # Obtain yearly summary statistics
     LOGGER.info(f"Obtaining yearly summary statistics for year {cfg.year}")
+    LOGGER.info(f"Using data root: {data_root}")
     LOGGER.info(f"Adding 'year' column to gridmet table for year {cfg.year}")
     conn.execute(f"""
         CREATE OR REPLACE TABLE gridmet AS (
@@ -24,7 +30,7 @@ def main(cfg):
                 EXTRACT(YEAR FROM date) AS year,
                 {', '.join(gridmet_vars)}
             FROM 
-                'data/{geo_name}/output/core/daily/meteorology__gridmet__{cfg.polygon_name}_daily__{cfg.year}.parquet'
+                '{data_root}/output/daily/meteorology__gridmet__{cfg.polygon_name}_daily__{cfg.year}.parquet'
         )
     """)
 
@@ -56,10 +62,10 @@ def main(cfg):
                  FROM gridmet_yearly_stats
                  ORDER BY year, {cfg.polygon_name}
             ) 
-        TO 'data/{geo_name}/output/core/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet'
+        TO '{data_root}/output/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet'
     """)
     
-    LOGGER.info(f"Outputted yearly stats table to 'data/{geo_name}/output/core/yearly/meteorology_{cfg.polygon_name}_yearly_{cfg.year}.parquet'")
+    LOGGER.info(f"Outputted yearly stats table to '{data_root}/output/yearly/meteorology_{cfg.polygon_name}_yearly_{cfg.year}.parquet'")
     conn.close()
 
 if __name__ == "__main__":

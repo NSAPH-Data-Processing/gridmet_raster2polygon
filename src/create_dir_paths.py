@@ -7,14 +7,15 @@ LOGGER = logging.getLogger(__name__)
 
 def init_folder(datapath="data", folder_cfg=None):
     folder_dict = folder_cfg.dirs
-    if not os.path.exists(datapath):
-        LOGGER.info(f"Error: {datapath} does not exists.")
-        return
-    
-    # appending name of geography to root datapath
-    if folder_cfg.name is not None:
+
+    # Use base_path if available (new pattern), otherwise fall back to data/{name}
+    if hasattr(folder_cfg, 'base_path') and folder_cfg.base_path is not None:
+        datapath = folder_cfg.base_path
+    elif folder_cfg.name is not None:
         datapath = os.path.join(datapath, folder_cfg.name)
-        os.makedirs(datapath, exist_ok=True)
+
+    os.makedirs(datapath, exist_ok=True)
+    LOGGER.info(f"Using base path: {datapath}")
 
     create_subfolders_and_links(datapath=datapath, folder_dict=folder_dict)
 

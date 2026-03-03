@@ -1,0 +1,26 @@
+# Population-weighted datapaths for all geographies on Cannon cluster
+# Usage: datapaths=cannon_popweighted shapefiles=county (or zcta) population.weighting.enabled=true
+# Geography is determined by the shapefiles config; both county and zcta
+# directory structures are created under base_path.
+name: cannon_popweighted
+base_path: data/population_weighted
+
+dirs:
+  county:
+    input:
+      raw: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/raw
+      shapefiles: /n/dominici_lab/lab/lego/geoboundaries/us_geoboundaries__census/us_shapefile__census/county_yearly
+      population: /n/dominici_lab/lab/lego/social/world_population__sedac
+    intermediate: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/population_weighted/.county_daily__intermediate
+    output:
+      daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/population_weighted/county_daily
+      yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/population_weighted/county_yearly
+  zcta:
+    input:
+      raw: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/raw
+      shapefiles: /n/dominici_lab/lab/lego/geoboundaries/us_geoboundaries__census/us_shapefile__census/zcta_yearly
+      population: /n/dominici_lab/lab/lego/social/world_population__sedac
+    intermediate: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/population_weighted/.zcta_daily__intermediate
+    output:
+      daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/population_weighted/zcta_daily
+      yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/population_weighted/zcta_yearly

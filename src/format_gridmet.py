@@ -13,7 +13,13 @@ def main(cfg):
     #gridmet_vars = list(cfg.gridmet.variable_key.keys())
     gridmet_vars = cfg.snakemake.gridmet_vars
     geo_name = cfg.datapaths.name
+    base_path = getattr(cfg.datapaths, 'base_path', None)
+    if geo_name is not None:
+        data_root = base_path or f"data/{geo_name}"
+    else:
+        data_root = f"{base_path}/{cfg.polygon_name}"
 
+    LOGGER.info(f"Using data root: {data_root}")
     LOGGER.info(f"Joining GridMET variables")
     conn = duckdb.connect(f"datapond_{cfg.year}.db")
 
@@ -26,7 +32,7 @@ def main(cfg):
                  day AS date, 
                  {gridmet_vars[0]}
             FROM
-                'data/{geo_name}/intermediate/{gridmet_vars[0]}_{cfg.year}_{cfg.polygon_name}.parquet'
+                '{data_root}/intermediate/{gridmet_vars[0]}_{cfg.year}_{cfg.polygon_name}.parquet'
             WHERE
                 {gridmet_vars[0]} IS NOT NULL
             )
@@ -42,7 +48,7 @@ def main(cfg):
                      day AS date, 
                      {var} 
                 FROM 
-                    'data/{geo_name}/intermediate/{var}_{cfg.year}_{cfg.polygon_name}.parquet'
+                    '{data_root}/intermediate/{var}_{cfg.year}_{cfg.polygon_name}.parquet'
                 WHERE
                     {var} IS NOT NULL
                 )
@@ -69,7 +75,7 @@ def main(cfg):
                  FROM gridmet
                  ORDER BY date, {cfg.polygon_name}
             ) 
-        TO 'data/{geo_name}/output/core/daily/meteorology__gridmet__{cfg.polygon_name}_daily__{cfg.year}.parquet'
+        TO '{data_root}/output/daily/meteorology__gridmet__{cfg.polygon_name}_daily__{cfg.year}.parquet'
     """)
 
     # Clean up
