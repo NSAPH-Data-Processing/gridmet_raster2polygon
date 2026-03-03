@@ -10,12 +10,12 @@ LOGGER = logging.getLogger(__name__)
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
 def main(cfg):
     gridmet_vars = cfg.snakemake.gridmet_vars
-    geo_name = cfg.datapaths.name
     base_path = getattr(cfg.datapaths, 'base_path', None)
-    if geo_name is not None:
-        data_root = base_path or f"data/{geo_name}"
-    else:
+    dirs_cfg = cfg.datapaths.dirs
+    if hasattr(dirs_cfg, cfg.polygon_name):
         data_root = f"{base_path}/{cfg.polygon_name}"
+    else:
+        data_root = base_path or f"data/{cfg.polygon_name}"
     conn = duckdb.connect()
 
     # Obtain yearly summary statistics
