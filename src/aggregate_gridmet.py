@@ -368,8 +368,7 @@ def main(cfg):
     run_pop_qc = getattr(cfg, "plot_population_qc", False) and population_weights is not None
 
     LOGGER.info("Computing zonal stats for each day...")
-    # TESTING: Process only first 10 days - REMEMBER TO CHANGE BACK TO layer.day.values!
-    for i, day in tqdm(enumerate(layer.day.values[:10]), disable=(not cfg.show_progress)):
+    for i, day in tqdm(enumerate(layer.day.values), disable=(not cfg.show_progress)):
         x_day = layer.sel(day=day).values.astype(np.float32)
         if cfg.downscaling_factor > 1:
             x_day = zoom(x_day, cfg.downscaling_factor, order=1)
