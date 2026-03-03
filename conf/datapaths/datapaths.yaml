@@ -1,12 +1,30 @@
-# if files are stored within the local copy of the repository, then use null:
+# Template for datapaths configuration.
+# Consolidated configs (cannon_core, cannon_popweighted) store all geographies
+# under a single base_path. When name is null, scripts use polygon_name to
+# determine the geography subdirectory under base_path.
 name: null
+base_path: null  # e.g. data/core or data/population_weighted
 
 dirs:
-  input:
-    raw: null
-    shapefiles: null
-    population: null
-
-  intermediate: null
-
-  output: null
+  population:
+    input:
+      raw: null
+    output: null
+  county:
+    input:
+      raw: null
+      shapefiles: null
+      population: null
+    intermediate: null
+    output:
+      daily: null
+      yearly: null
+  zcta:
+    input:
+      raw: null
+      shapefiles: null
+      population: null
+    intermediate: null
+    output:
+      daily: null
+      yearly: null

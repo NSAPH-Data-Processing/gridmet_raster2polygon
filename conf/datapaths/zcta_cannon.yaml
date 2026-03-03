@@ -1,5 +1,7 @@
-# if files are stored within the local copy of the repository, then use null:
+# DEPRECATED: Use zcta_cannon_core.yaml or zcta_cannon_popweighted.yaml instead.
+# This config is kept for backward compatibility and defaults to core (unweighted) paths.
 name: zcta
+base_path: data/zcta
 
 dirs:
   input:

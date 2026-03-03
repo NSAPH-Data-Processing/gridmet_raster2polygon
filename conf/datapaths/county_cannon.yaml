@@ -1,5 +1,7 @@
-# if files are stored within the local copy of the repository, then use null:
+# DEPRECATED: Use county_cannon_core.yaml or county_cannon_popweighted.yaml instead.
+# This config is kept for backward compatibility and defaults to core (unweighted) paths.
 name: county
+base_path: data/county
 
 dirs:
   input:

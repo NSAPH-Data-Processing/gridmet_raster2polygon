@@ -1,4 +1,5 @@
 name: grid_4x4
+base_path: data/core/grid_4x4
 
 dirs:
   input: 

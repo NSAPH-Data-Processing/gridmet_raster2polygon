@@ -59,16 +59,16 @@ rule download_gridmet:
 
 rule download_population:
     output:
-        "data/input/population/count/gpw-v4-population-count-rev11_{year}_2pt5_min_tif.zip",
+        f"{base_path}/population/output/world_population__sedac__world_yearly__{{year}}.tif",
     log:
         err="logs/download_population_{year}.log",
     shell:
-        "python src/download_population.py year={wildcards.year} 2> {log.err}"
+        "python src/download_population.py year={wildcards.year} datapaths={datapaths} shapefiles={shapefiles} 2> {log.err}"
 
 rule aggregate_gridmet:
     input:
         gridmet=f"{data_root}/input/raw/{{var}}_{{year}}.nc",
-        population="data/input/population/count/gpw-v4-population-count-rev11_{year}_2pt5_min_tif.zip" if hydra_cfg.population.weighting.enabled else [],
+        population=f"{base_path}/population/output/world_population__sedac__world_yearly__{{year}}.tif" if hydra_cfg.population.weighting.enabled else [],
     output:
         f"{data_root}/intermediate/{{var}}_{{year}}_{shapefiles}.parquet",
     log:

@@ -252,22 +252,17 @@ def load_population_weights(cfg, gridmet_shape, gridmet_transform, downscaling_f
     if not cfg.population.weighting.enabled:
         return None
 
-    # Always use population count for weighting
-    pop_config = cfg.population.count
     year = cfg.year
 
-    # Check if population data exists for this year
-    if year not in pop_config.file_map:
-        LOGGER.warning(f"No population data available for year {year}")
-        LOGGER.warning(f"Available years: {list(pop_config.file_map.keys())}")
-        LOGGER.warning("Proceeding with unweighted aggregation")
-        return None
+    # Derive data_root (same logic as main() and download_population.py)
+    base_path = getattr(cfg.datapaths, 'base_path', None)
+    dirs_cfg = cfg.datapaths.dirs
+    if hasattr(dirs_cfg, cfg.polygon_name):
+        data_root = f"{base_path}/{cfg.polygon_name}"
+    else:
+        data_root = base_path or f"data/{cfg.polygon_name}"
 
-    # Construct population file path
-    pop_dir = cfg.population.data_dir
-    # Use the first file from the 'files' list (the actual .tif inside the zip)
-    pop_filename = pop_config.file_map[year]['files'][0]
-    pop_path = f"{pop_dir}/count/{pop_filename}"
+    pop_path = f"{base_path}/population/output/world_population__sedac__world_yearly__{year}.tif"
 
     try:
         LOGGER.info(f"Loading population count data from: {pop_path}")
@@ -304,15 +299,14 @@ def main(cfg):
     desc = cfg.gridmet.variable_key[cfg.var]
     LOGGER.info(f"Aggregating year={cfg.year} for var={desc} ({cfg.var})")
 
-    # Resolve data root path
-    # Consolidated configs (cannon_core, cannon_popweighted): name=null, append polygon_name
-    # Legacy per-geography configs (county_cannon, etc.): name set, base_path already includes geography
+    # Resolve data root path: consolidated configs (cannon_core, cannon_popweighted) nest
+    # data under base_path/{polygon_name}; single-geo configs use base_path directly.
     base_path = getattr(cfg.datapaths, 'base_path', None)
-    name = getattr(cfg.datapaths, 'name', None)
-    if name is not None:
-        data_root = base_path or f"data/{name}"
-    else:
+    dirs_cfg = cfg.datapaths.dirs
+    if hasattr(dirs_cfg, cfg.polygon_name):
         data_root = f"{base_path}/{cfg.polygon_name}"
+    else:
+        data_root = base_path or f"data/{cfg.polygon_name}"
     LOGGER.info(f"Using data root: {data_root}")
 
     # load shapefile

@@ -4,4 +4,4 @@ years:
   - 2010
   - 2020
 idvar: "zcta"  # Column name in the  lego shapefile
-prefix: "us__shapefile__census__zcta_yearly__"
+prefix: "us_shapefile__census__zcta_yearly__"
