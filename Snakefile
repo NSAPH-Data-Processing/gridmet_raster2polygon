@@ -22,12 +22,17 @@ with hydra.initialize(version_base=None, config_path="conf"):
     hydra_cfg = hydra.compose(config_name="config", overrides=overrides)
 
 geo_name = hydra_cfg.datapaths.name
-# Resolve data root: consolidated configs (name=null) append polygon_name to base_path
+# Resolve data root: consolidated configs (cannon_core, cannon_popweighted) nest data
+# under base_path/{shapefiles}; single-geo configs (county_cannon, zcta_cannon) use base_path directly.
+# Detect consolidated configs by checking whether dirs has a sub-key matching shapefiles.
 base_path = getattr(hydra_cfg.datapaths, 'base_path', None)
-if geo_name is not None:
-    data_root = base_path or f"data/{geo_name}"
-else:
+dirs_cfg = hydra_cfg.datapaths.dirs
+if hasattr(dirs_cfg, shapefiles):
+    # Consolidated config: data is organized under base_path/{shapefiles}/
     data_root = f"{base_path}/{shapefiles}"
+else:
+    # Single-geo config: base_path is already geography-specific
+    data_root = base_path or f"data/{geo_name}"
 
 # needed to import modules from utils/ when running aggregate_gridmet.py
 if "PYTHONPATH" in os.environ:
