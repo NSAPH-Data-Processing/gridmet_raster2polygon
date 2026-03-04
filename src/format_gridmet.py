@@ -83,7 +83,4 @@ def main(cfg):
     os.remove(f"datapond_{cfg.year}.db")
 
 if __name__ == "__main__":
-    # if os.path.exists("datapond.db"):
-    #     os.remove("datapond.db")
-    #     print("File datapond.db removed")
     main()
