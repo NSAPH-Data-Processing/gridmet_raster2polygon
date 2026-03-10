@@ -6,14 +6,9 @@ yearly aggregations produced by get_yearly.py.
 
 Usage
 -----
-python src/population_qc.py \
-    --weighted_dir   <path>/population_weighted/county_yearly \
-    --unweighted_dir <path>/core/county_yearly \
-    --polygon_name   county \
-    --shapefile      <path>/county_2020/county_2020.shp \
-    --output_dir     qc_plots/ \
-    [--var rmin]     # omit to loop over all variables
-    [--years 2010 2011 2022]   # omit to use all available years
+    python src/population_qc.py --config-name population_qc
+    python src/population_qc.py --config-name population_qc polygon_name=zcta
+    python src/population_qc.py --config-name population_qc var=rmin years=[2010,2015,2020]
 
 Inputs
 ------
@@ -38,17 +33,17 @@ One 4-panel PNG per variable:
   4. Spatial   – choropleth of the difference for the most recent year
 """
 
-import argparse
 import glob
 import logging
 import os
-import sys
 
 import geopandas as gpd
+import hydra
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from omegaconf import OmegaConf
 
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
@@ -250,76 +245,44 @@ def plot_qc(
 
 
 # ---------------------------------------------------------------------------
-# CLI
+# Entry point
 # ---------------------------------------------------------------------------
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="QC plots comparing population-weighted vs unweighted gridMET yearly aggregations."
-    )
-    parser.add_argument(
-        "--weighted_dir", required=True,
-        help="Directory of weighted yearly parquets (output of get_yearly.py on population-weighted data).",
-    )
-    parser.add_argument(
-        "--unweighted_dir", required=True,
-        help="Directory of unweighted yearly parquets (output of get_yearly.py on core/unweighted data).",
-    )
-    parser.add_argument(
-        "--polygon_name", required=True,
-        help="Geographic unit identifier, e.g. 'county' or 'zcta'.",
-    )
-    parser.add_argument(
-        "--shapefile", required=True,
-        help="Path to a .shp file for the spatial map panel.",
-    )
-    parser.add_argument(
-        "--output_dir", required=True,
-        help="Directory to save QC PNG files.",
-    )
-    parser.add_argument(
-        "--var", default=None,
-        help="gridMET variable to plot (e.g. rmin). Omit to plot all variables.",
-    )
-    parser.add_argument(
-        "--years", nargs="+", type=int, default=None,
-        help="Years to include (e.g. --years 2010 2011 2022). Defaults to all available.",
-    )
-    return parser.parse_args()
-
-
-def main():
-    args = parse_args()
+@hydra.main(config_path="../conf", config_name="population_qc", version_base=None)
+def main(cfg):
+    years = list(cfg.years) if cfg.years is not None else None
 
     LOGGER.info("Loading weighted yearly data...")
-    df_w = _load_yearly_dir(args.weighted_dir, args.polygon_name, args.years)
+    df_w = _load_yearly_dir(cfg.weighted_yearly_dir, cfg.polygon_name, years)
 
     LOGGER.info("Loading unweighted yearly data...")
-    df_u = _load_yearly_dir(args.unweighted_dir, args.polygon_name, args.years)
+    df_u = _load_yearly_dir(cfg.unweighted_yearly_dir, cfg.polygon_name, years)
 
-    LOGGER.info(f"Loading shapefile: {args.shapefile}")
-    polygon = gpd.read_file(args.shapefile)
+    # Resolve shapefile path the same way as aggregate_gridmet.py
+    shapefile_nm = cfg.shapefile_prefix + str(cfg.shapefile_year)
+    shapefile_path = f"{cfg.shapefile_dir}/{shapefile_nm}/{shapefile_nm}.shp"
+    LOGGER.info(f"Loading shapefile: {shapefile_path}")
+    polygon = gpd.read_file(shapefile_path)
 
-    # Determine which column in the shapefile matches polygon_name
-    if args.polygon_name not in polygon.columns:
-        # Try a case-insensitive match
-        matches = [c for c in polygon.columns if c.lower() == args.polygon_name.lower()]
+    # Ensure the polygon_name column is present (case-insensitive fallback)
+    if cfg.polygon_name not in polygon.columns:
+        matches = [c for c in polygon.columns if c.lower() == cfg.polygon_name.lower()]
         if matches:
-            polygon = polygon.rename(columns={matches[0]: args.polygon_name})
-            LOGGER.info(f"Renamed shapefile column '{matches[0]}' → '{args.polygon_name}'")
+            polygon = polygon.rename(columns={matches[0]: cfg.polygon_name})
+            LOGGER.info(f"Renamed shapefile column '{matches[0]}' → '{cfg.polygon_name}'")
         else:
             LOGGER.warning(
-                f"Column '{args.polygon_name}' not found in shapefile. "
+                f"Column '{cfg.polygon_name}' not found in shapefile. "
                 f"Available columns: {polygon.columns.tolist()}"
             )
 
     # Determine variables to plot
-    if args.var:
-        vars_to_plot = [args.var]
+    if cfg.var:
+        vars_to_plot = [cfg.var]
     else:
-        data_vars = set(df_w.columns) & set(df_u.columns) - {"year", args.polygon_name}
+        data_vars = (set(df_w.columns) & set(df_u.columns)) - {"year", cfg.polygon_name}
         vars_to_plot = sorted(data_vars & set(VARIABLE_KEY.keys()))
-        LOGGER.info(f"No --var specified; plotting all variables: {vars_to_plot}")
+        LOGGER.info(f"No var specified; plotting all variables: {vars_to_plot}")
 
     for var in vars_to_plot:
         if var not in df_w.columns:
@@ -328,7 +291,7 @@ def main():
         if var not in df_u.columns:
             LOGGER.warning(f"Variable '{var}' not in unweighted data; skipping.")
             continue
-        plot_qc(df_w, df_u, var, args.polygon_name, polygon, args.output_dir)
+        plot_qc(df_w, df_u, var, cfg.polygon_name, polygon, cfg.output_dir)
 
     LOGGER.info("Done.")
 

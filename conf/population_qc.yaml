@@ -1,0 +1,43 @@
+# Configuration for src/population_qc.py
+# Compares population-weighted vs unweighted yearly gridMET aggregations.
+#
+# Run:
+#   python src/population_qc.py --config-name population_qc polygon_name=county
+#   python src/population_qc.py --config-name population_qc polygon_name=zcta var=rmin
+
+# Geographic unit: county | zcta
+polygon_name: county
+
+# Year range for QC.  Leave years as null to include all available years,
+# or supply a list, e.g. [2010, 2015, 2020]
+years: [2010, 2015, 2020]
+
+# gridMET variable shortname (e.g. rmin, tmmx).
+# Set to null to loop over ALL variables present in both datasets.
+var: null
+
+# -----------------------------------------------------------------------------
+# Input data directories
+# -----------------------------------------------------------------------------
+
+# Yearly parquets from a population-weighted get_yearly.py run.
+# Expected filename: meteorology__gridmet__{polygon_name}_yearly__{year}.parquet
+weighted_yearly_dir: data/population_weighted/${polygon_name}/output/yearly
+
+# Yearly parquets from the core (unweighted) get_yearly.py run.
+unweighted_yearly_dir: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/core/${polygon_name}_yearly
+
+# Path to the shapefile (.shp) used for spatial maps.
+# The file must contain a column matching polygon_name (e.g. county, zcta).
+shapefile_dir: /n/dominici_lab/lab/lego/geoboundaries/us_geoboundaries__census/us_shapefile__census/${polygon_name}_yearly
+shapefile_prefix: us_shapefile__census__${polygon_name}_yearly__
+shapefile_year: 2020  # which vintage of the shapefile to use for the spatial panel
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+output_dir: logs/population_qc/${polygon_name}
+
+hydra:
+  run:
+    dir: logs/${now:%Y-%m-%d}/${now:%H-%M-%S}
