@@ -17,8 +17,6 @@ shapefile_year: 2020  # used when running download_shapefiles.py standalone
 
 show_progress: true
 plot_output: true  # plots the first day of each var aggregation for debugging
-plot_population_qc: true  # plots population-weighted vs unweighted comparison for QC
-
 hydra:
   run:
     dir: logs/${now:%Y-%m-%d}/${now:%H-%M-%S}
