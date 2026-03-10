@@ -108,3 +108,14 @@ rule get_yearly:
         """
         python src/get_yearly.py year={wildcards.year} datapaths={datapaths} shapefiles={shapefiles}
         """
+rule get_seasonal:
+    input:
+        f"{data_root}/output/core/daily/meteorology__gridmet__{shapefiles}_daily__{{year}}.parquet",
+    output:
+        f"{data_root}/output/seasonal/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
+    log:
+        f"logs/{shapefiles}/get_seasonal_{{year}}.log",
+    shell:
+        """
+        python src/seasonal_vars.py year={wildcards.year} &> {log}
+        """
