@@ -46,6 +46,12 @@ def main(cfg):
     gridmet_vars = cfg.snakemake.gridmet_vars
     year = cfg.year
     seasons = cfg.seasons
+    base_path = getattr(cfg.datapaths, 'base_path', None)
+    dirs_cfg = cfg.datapaths.dirs
+    if hasattr(dirs_cfg, cfg.polygon_name):
+        data_root = f"{base_path}/{cfg.polygon_name}"
+    else:
+        data_root = base_path or f"data/{geo_name}"
     
     LOGGER.info(f"Creating seasonal aggregates for {geo_name}, year {year}")
     LOGGER.info(f"Variables: {', '.join(gridmet_vars)}")
@@ -54,7 +60,7 @@ def main(cfg):
     conn = duckdb.connect()
     
     # Load current year data only
-    data_dir = Path(f"data/{geo_name}/output/core/daily")
+    data_dir = Path(f"{data_root}/output/core/daily")
     current_year_file = data_dir / f"meteorology__gridmet__{polygon_name}_daily__{year}.parquet"
     
     if not current_year_file.exists():
@@ -160,7 +166,7 @@ def main(cfg):
     LOGGER.info(f"\n{sample.to_string()}")
     
     # Write output to parquet file
-    output_path = f"data/{geo_name}/output/seasonal/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet"
+    output_path = f"{data_root}/output/seasonal/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet"
     LOGGER.info(f"Writing output to: {output_path}")
     conn.execute(f"""
         COPY seasonal_combined
