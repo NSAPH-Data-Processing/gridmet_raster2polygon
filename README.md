@@ -159,7 +159,15 @@ NB: this pipeline expects shapefiles to be stored in paths of the form `{shapefi
 
 ## Population Weighting (Optional)
 
-This pipeline supports **population-weighted aggregation** of gridMET variables, which provides more accurate estimates of human exposure to meteorological conditions by weighting grid cells by their population.
+This pipeline supports **population-weighted aggregation** of gridMET variables. Simple spatial averages treat each grid cell equally regardless of how many people reside there; population-weighted aggregation instead computes:
+
+```
+weighted_mean = Σ(value_i × population_i) / Σ(population_i)
+```
+
+This approach is the methodological standard in climate-health epidemiology, where the goal is to characterize **human exposure** rather than areal coverage (Gasparrini et al., 2015; Zhao et al., 2021). It ensures that densely populated urban areas which tend to exhibit distinct microclimates from surrounding rural land contribute proportionally to their population share.
+
+Population counts are drawn from the Gridded Population of the World, Version 4 (GPWv4), Revision 11 (CIESIN, 2018) at 2.5 arc-minute (~4.6 km) resolution and are automatically aligned to the gridMET grid.
 
 ### Quick Start
 
@@ -181,17 +189,17 @@ This pipeline supports **population-weighted aggregation** of gridMET variables,
 
 ### Data Source
 
-- **Population Count**: https://doi.org/10.7910/DVN/C0LVYI
+- **Population Count (GPWv4 Rev. 11)**: https://doi.org/10.7910/DVN/C0LVYI
 
 ### Documentation
 
-For detailed information about:
-- Configuration options
-- File management
-- Technical details
-- Validation methods
+For full scientific background, methodological rationale, limitations, and usage instructions, see: **[docs/POPULATION_WEIGHTING.md](docs/POPULATION_WEIGHTING.md)**
 
-See: **[docs/POPULATION_WEIGHTING.md](docs/POPULATION_WEIGHTING.md)**
+### Selected References
+
+- CIESIN (2018). *Gridded Population of the World, Version 4 (GPWv4): Population Count, Revision 11*. NASA SEDAC. https://doi.org/10.7927/H4JW8BX5
+- Gasparrini, A., et al. (2015). Mortality risk attributable to high and low ambient temperature: a multicountry observational study. *The Lancet*, 386(9991), 369–375. https://doi.org/10.1016/S0140-6736(14)62114-0
+- Zhao, Q., et al. (2021). Global, regional, and national burden of mortality associated with non-optimal ambient temperatures from 2000 to 2019. *Lancet Planetary Health*, 5(7), e415–e425. https://doi.org/10.1016/S2542-5196(21)00081-4
 
 ## Pipeline
 
@@ -226,11 +234,3 @@ If you want to build your own image use from the Dockerfile int the GitHub repos
 docker build -t <image_name> .
 ```
 
-## Population weighting 
-
-To make our lives easier, we will downscale gridmet by a factor of 5 instead of 4. 
-~4-km, 1/24th degree/5 --> 0.00833 degree which is equivalent to 30 arc seconds --> this is the finest resolution of population count and density data that we have 
-
-From here, all we need to do is "snap" or realign the population grid to the gridmet grid. other. Then, we calculate the population weights and apply them to the gridmet data
-
-finally, we aggregate to zcta and county polygons 

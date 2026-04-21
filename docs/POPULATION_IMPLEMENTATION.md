@@ -1,322 +1,173 @@
-# Population-Weighted gridMET Aggregation Implementation
+# Population Weighting: Implementation Reference
 
-## Summary
+This document describes the technical implementation of population-weighted aggregation in `gridmet_raster2polygon`. For scientific background, mathematical formulation, and citations, see [POPULATION_WEIGHTING.md](POPULATION_WEIGHTING.md).
 
-This implementation adds **population-weighted aggregation** capability to the gridMET raster2polygon pipeline. This feature allows for more accurate estimates of human exposure to meteorological conditions by weighting grid cells based on their population counts.
+---
 
-## Key Features
+## Architecture Overview
 
-### 1. **Population Data Source**
-- Uses population **count** (DVN/C0LVYI) data from Harvard Dataverse
-- Automatic fallback to unweighted aggregation if population data unavailable
+Population weighting is applied at Stage 2 of the pipeline (aggregation), and is transparent to all downstream stages:
 
-### 2. **Automated Download**
-- New script: `src/download_population.py`
-- Downloads population raster data from Harvard Dataverse
-- Supports multiple years and data types
-- Progress tracking with tqdm
+```
+Stage 1: download_gridmet.py       — raw NetCDF files
+Stage 2: aggregate_gridmet.py      — raster → polygon (POPULATION WEIGHTING HERE)
+Stage 3: format_gridmet.py         — join variables into daily dataset
+Stage 4: get_yearly.py             — annual averages
+Stage 5: seasonal_vars.py          — seasonal averages
+```
 
-### 3. **Enhanced Zonal Statistics**
-- Extended `utils/faster_zonal_stats.py` with `compute_zonal_stats()` function
-- Supports population-weighted mean calculation
-- Handles NaN values and zero-population cells gracefully
-- Memory-efficient processing
+Stages 3–5 process weighted and unweighted outputs identically; the weighted mean is stored as a standard column value in the intermediate Parquet file.
 
-### 4. **Seamless Integration**
-- Modified `src/aggregate_gridmet.py` to support optional population weighting
-- Automatically aligns population data with gridMET rasters
-- Handles downscaling factors
-- Zero code changes needed for existing unweighted workflows
-
-### 5. **Comprehensive Configuration**
-- New `conf/population.yaml` configuration file
-- Enable/disable weighting with a single flag
-- Supports multiple population data years
-- Flexible file path management
+---
 
 ## File Changes
 
 ### New Files
 
-1. **`src/download_population.py`** (111 lines)
-   - Downloads population data from Harvard Dataverse
-   - Handles file IDs and direct URLs
-   - Progress tracking and error handling
-
-2. **`conf/population.yaml`** (56 lines)
-   - Configuration for population data sources
-   - File mappings for different years
-   - Weighting enabled/disabled flag
-
-3. **`docs/POPULATION_WEIGHTING.md`** (259 lines)
-   - Comprehensive documentation
-   - Usage examples
-   - Technical details and troubleshooting
+| File | Purpose |
+|------|---------|
+| `src/download_population.py` | Downloads GPWv4 population GeoTIFF from Harvard Dataverse; resolves nearest available census year; caches raw zip to avoid re-download |
+| `conf/population.yaml` | Configuration for population data sources, file mappings, and weighting toggle |
+| `docs/POPULATION_WEIGHTING.md` | Scientific background, mathematical formulation, citations, and usage guide |
 
 ### Modified Files
 
-1. **`conf/config.yaml`**
-   - Added `population` to defaults list
-   - Added `seasons` to defaults list (from previous PR)
+| File | Change |
+|------|--------|
+| `conf/config.yaml` | Added `population` to Hydra defaults list |
+| `utils/faster_zonal_stats.py` | Added `compute_zonal_stats()` with optional weighted mean |
+| `src/aggregate_gridmet.py` | Added `align_population_to_gridmet()`, `load_population_weights()`, and integrated weighting into main loop |
+| `Snakefile` | Added `download_population` rule |
+| `README.md` | Added Population Weighting section with scientific context |
 
-2. **`utils/faster_zonal_stats.py`**
-   - Added `compute_zonal_stats()` function (77 lines)
-   - Supports weighted and unweighted statistics
-   - Handles NaN values properly
+---
 
-3. **`src/aggregate_gridmet.py`**
-   - Added `load_population_weights()` function (82 lines)
-   - Modified main loop to use `compute_zonal_stats()`
-   - Added population weighting logic
-   - Maintains backward compatibility
+## Key Functions
 
-4. **`Snakefile`**
-   - Added `download_population` rule
-   - Supports optional population data download
+### `align_population_to_gridmet()` — `src/aggregate_gridmet.py`
 
-5. **`README.md`**
-   - Added "Population Weighting (Optional)" section
-   - Quick start guide
-   - Link to detailed documentation
+Reads the population GeoTIFF and reprojects it to exactly match the target gridMET grid (shape + affine transform). Uses nearest-neighbor resampling to preserve count integrity (see [resampling rationale](POPULATION_WEIGHTING.md#resampling-method-why-nearest-neighbor-for-population)).
 
-## Technical Implementation
+```
+Input:  pop_path (GeoTIFF), gridmet_shape, gridmet_transform, gridmet_crs
+Output: np.ndarray (float32), shape == gridmet_shape
+```
 
-### Population Weighting Formula
+Pre-processing before resampling:
+- Source nodata values → 0
+- Non-finite (NaN/Inf) values → 0
+- Negative values → 0
+
+Grid identity check (`_same_grid()`): if the population raster already matches the gridMET grid exactly (same shape and affine transform within floating-point tolerance), the warp step is skipped entirely.
+
+### `load_population_weights()` — `src/aggregate_gridmet.py`
+
+Wrapper that checks `cfg.population.weighting.enabled`, constructs the file path from `cfg.datapaths.base_path` and `cfg.year`, calls `align_population_to_gridmet()`, and returns the aligned weight array — or `None` if weighting is disabled or the file is missing.
+
+Returning `None` rather than raising an exception allows `compute_zonal_stats()` to fall back to unweighted aggregation, so a missing population file does not abort the entire pipeline run.
+
+### `compute_zonal_stats()` — `utils/faster_zonal_stats.py`
+
+Computes per-polygon statistics using a precomputed cell-index map (`poly2cells`). The cell map is built once per year/shapefile combination; this is the expensive step. The per-day loop only calls `compute_zonal_stats()`, which is a fast NumPy operation.
 
 ```python
-weighted_mean = Σ(value_i × population_i) / Σ(population_i)
+# Weighted path (weights is not None):
+result = np.sum(valid_cells * valid_weights) / np.sum(valid_weights)
+
+# Unweighted path (weights is None):
+result = np.nanmean(valid_cells)
 ```
 
-Where:
-- `value_i` = gridMET variable value for cell i
-- `population_i` = population count for cell i
+NaN values in the meteorological field are excluded from both numerator and denominator via a boolean mask applied before aggregation.
 
-### Workflow
+---
 
-```
-1. Load gridMET raster (4km or downscaled)
-2. Load population raster (1km, optionally downscaled)
-3. Compute polygon-to-cell mapping (once per year/polygon type)
-4. For each day:
-   - Extract gridMET values for polygon cells
-   - Extract population weights for same cells
-   - Compute weighted mean
-   - Store result
-```
+## Methodological Considerations
 
-### Data Alignment
+### Downscaling and Population Alignment
 
-- gridMET: ~4km resolution (native) or 1km (with downscaling_factor=4)
-- Population: 1km resolution
-- Both use same geographic coordinate system (WGS84/EPSG:4326)
-- Automatic spatial alignment via affine transforms
+When `downscaling_factor > 1`, the gridMET raster is spatially upsampled before polygon aggregation. This is done to improve the accuracy of the polygon-to-cell mapping: at native 2.5 arc-minute (~4.6 km) resolution, small polygons (e.g., dense urban ZCTAs) may intersect only a handful of cells; upsampling by a factor of 4 increases the effective resolution to ~0.625 arc-minutes (~1.16 km), providing finer-grained overlap estimates.
 
-### Memory Footprint
+The population raster is **not** upsampled using the same bilinear interpolation as gridMET values. Instead, it is warped to the exact downscaled gridMET grid using nearest-neighbor resampling. This preserves the physical meaning of the population count: each cell in the aligned array holds the count of people residing in the corresponding GPWv4 native cell, assigned to the nearest fine-grid cell. Bilinear interpolation would fractionate and smear counts in a way that has no physical interpretation.
 
-- Population raster: ~50-200 MB per year
-- Additional memory: ~10-20% over baseline
-- Efficient processing via NumPy masked arrays
+This design follows the principle that spatial transformations should be chosen based on the nature of the data being transformed (Goodchild & Lam, 1980): continuous fields allow smooth interpolation; count data require methods that preserve the discrete character of the values.
 
-## Usage Examples
+### Census Year Assignment
 
-### Basic Usage
+Population data are available only at five-year intervals (2000, 2005, 2010, 2015, 2020). The pipeline assigns the most recent available census year to each meteorological year. This is implemented in `src/download_population.py` via a sorted fallback search. For example, a request for year 2013 resolves to the 2010 population file.
 
-```bash
-# 1. Enable weighting
-# Edit conf/population.yaml: weighting.enabled: true
-
-# 2. Download population data
-python src/download_population.py year=2010
-
-# 3. Run aggregation (weighting applied automatically)
-python src/aggregate_gridmet.py year=2010 var=tmmx datapaths=county_core_cannon shapefiles=county
-```
-
-### Full Pipeline with Snakemake
-
-```bash
-# Process multiple years with population weighting
-snakemake --cores 16 \
-    -C datapaths=county_core_cannon shapefiles=county \
-    years=[2000,2024]
-```
-
-### Comparing Weighted vs Unweighted
-
-```bash
-# Unweighted (default)
-python src/aggregate_gridmet.py year=2010 var=tmmx population.weighting.enabled=false
-
-# Weighted
-python src/aggregate_gridmet.py year=2010 var=tmmx population.weighting.enabled=true
-```
-
-## Configuration
-
-### Enable/Disable Weighting
-
-In `conf/population.yaml`:
-
-```yaml
-weighting:
-  enabled: true  # Set to false to disable
-  method: mean
-```
-
-### Add Population Data Files
-
-```yaml
-count:
-  file_map:
-    2010:
-      filename: "population_count_2010.tif"
-      file_id: "123456"  # From Dataverse
-```
-
-### Override at Runtime
-
-```bash
-python src/aggregate_gridmet.py year=2010 population.weighting.enabled=true
-```
-
-## Validation
-
-### Automated Checks
-
-1. **Population data validation**: Negative values → 0, NaN → 0
-2. **Missing data handling**: Falls back to unweighted if population unavailable
-3. **Log verification**: Logs total population and method used
-4. **NaN handling**: Excludes cells with missing meteorological data
-
-### Manual Verification
-
-```python
-import pandas as pd
-
-# Load results
-weighted = pd.read_parquet("output/weighted/meteorology__gridmet__county_daily__2010.parquet")
-unweighted = pd.read_parquet("output/unweighted/meteorology__gridmet__county_daily__2010.parquet")
-
-# Compare for urban vs rural counties
-urban_diff = weighted.loc['36061', 'tmmx'] - unweighted.loc['36061', 'tmmx']  # NYC
-rural_diff = weighted.loc['31005', 'tmmx'] - unweighted.loc['31005', 'tmmx']  # Rural NE
-
-print(f"Urban difference: {urban_diff:.2f}K")
-print(f"Rural difference: {rural_diff:.2f}K")
-# Expect larger differences in heterogeneous urban areas
-```
-
-## Integration with Existing Pipeline
+Alternative approaches — linear interpolation between census years, or cohort-component projection — would reduce temporal approximation error but would require additional assumptions and data. The current approach is transparent and reproducible. For most policy-relevant analyses (multi-year time series at county or ZCTA level), the practical impact of this approximation is expected to be small relative to within-county spatial heterogeneity.
 
 ### Backward Compatibility
 
-- **Default behavior**: Unweighted (existing behavior preserved)
-- **No breaking changes**: All existing scripts work without modification
-- **Optional feature**: Must explicitly enable in configuration
+All changes are additive:
+- **Default behavior is unweighted.** If `population.weighting.enabled: false` (or the `population` block is absent from the config), the pipeline behaves identically to the pre-weighting version.
+- **`compute_zonal_stats()` with `weights=None`** falls back to `np.nanmean`, producing the same result as the previous `rasterstats`-based zonal statistics.
+- **Intermediate file format is unchanged.** Downstream stages (format, yearly, seasonal) read the same Parquet schema regardless of whether values were computed with or without population weighting.
 
-### Pipeline Stages
-
-The population weighting integrates at Stage 2:
-
-1. Download raw gridMET data ✓
-2. **Aggregate raster to polygons** ← Population weighting applied here
-3. Format and join variables ✓
-4. Calculate yearly averages ✓
-5. Calculate seasonal averages ✓
-
-Stages 3-5 automatically process weighted outputs with no changes.
-
-### Output Compatibility
-
-- Same file names and formats
-- Same column names
-- Same data types
-- Can process both weighted and unweighted outputs identically
-
-## Testing
-
-### Unit Tests (Recommendations)
-
-```python
-# Test weighted vs unweighted for uniform population
-# Expected: Same results
-
-# Test weighted for zero population
-# Expected: NaN for polygons with no population
-
-# Test weighted for high population variance
-# Expected: Different from unweighted, biased toward high-pop cells
-```
-
-### Integration Tests
-
-```bash
-# Small test dataset
-python src/aggregate_gridmet.py year=2010 var=tmmx \
-    datapaths=county_core_cannon shapefiles=county \
-    population.weighting.enabled=true
-
-# Verify output exists and is valid
-python -c "
-import pandas as pd
-df = pd.read_parquet('data/county/intermediate/tmmx_2010_county.parquet')
-assert not df.empty
-assert 'tmmx' in df.columns
-print(f'✓ Output valid: {len(df)} rows')
-"
-```
+---
 
 ## Performance
 
-### Benchmarks (Approximate)
+| Operation | Approximate cost |
+|-----------|-----------------|
+| Population file download | 30–60 s per census year |
+| Population grid alignment | 1–2 s per variable-year run |
+| Per-day weighted aggregation overhead | +5–10% vs. unweighted |
+| Additional memory (population array) | +50–200 MB per run |
 
-- **Population data download**: 30-60 seconds per year
-- **Population data loading**: 1-2 seconds per year
-- **Weighted aggregation overhead**: +5-10% vs unweighted
-- **Memory increase**: +10-20%
+The population array is loaded once per variable-year invocation and reused across all 365 daily iterations, so the alignment cost is amortized.
 
-### Optimization Opportunities
+---
 
-1. Cache population data in memory for multi-variable runs
-2. Pre-process population at common gridMET resolution
-3. Parallel processing of multiple years
-4. GPU acceleration for large-scale processing
+## Testing Guidance
 
-## Future Enhancements
+### Unit-Level Checks
 
-### Potential Extensions
+```python
+import numpy as np
+from utils.faster_zonal_stats import compute_zonal_stats
 
-1. **Temporal interpolation**: Interpolate population between census years
-2. **Age-stratified** weighting: Weight by specific age groups
-3. **Time-varying** population: Use different population for different seasons
-4. **Other demographic** weights: Income, vulnerability indices
-5. **Custom weight rasters**: User-provided weight layers
+# Uniform population → weighted mean == unweighted mean
+raster = np.array([[1.0, 2.0], [3.0, 4.0]])
+weights = np.ones_like(raster)
+cell_map = [(np.array([0, 0, 1, 1]), np.array([0, 1, 0, 1]))]
+assert compute_zonal_stats(raster, cell_map, weights=weights) == \
+       compute_zonal_stats(raster, cell_map, weights=None)
 
-### Additional Statistics
+# All-zero weights → NaN
+weights_zero = np.zeros_like(raster)
+assert np.isnan(compute_zonal_stats(raster, cell_map, weights=weights_zero)[0])
 
-Beyond weighted mean:
-- Weighted quantiles (25th, 75th percentiles)
-- Weighted variance/standard deviation
-- Population-adjusted exposure thresholds
+# Concentrated weight → result biased toward high-weight cell
+weights_skewed = np.array([[0.0, 0.0], [0.0, 1.0]])  # all weight on cell (1,1) = value 4.0
+result = compute_zonal_stats(raster, cell_map, weights=weights_skewed)[0]
+assert abs(result - 4.0) < 1e-6
+```
 
-## Data Sources & Attribution
+### Integration Check
 
-**Population Count Data**:
-- DOI: https://doi.org/10.7910/DVN/C0LVYI
-- Harvard Dataverse
-- 1km resolution gridded population counts
+```bash
+python src/aggregate_gridmet.py year=2010 var=tmmx \
+    datapaths=cannon_popweighted shapefiles=county \
+    population.weighting.enabled=true
 
-## Support & Troubleshooting
+python -c "
+import pandas as pd
+df = pd.read_parquet('data/county/intermediate/tmmx_2010_county.parquet')
+assert not df.empty, 'Output is empty'
+assert 'tmmx' in df.columns, 'Variable column missing'
+assert df['tmmx'].notna().sum() > 0, 'All values are NaN'
+print(f'OK: {len(df)} rows, {df[\"tmmx\"].notna().sum()} non-NaN')
+"
+```
 
-See detailed troubleshooting in: [docs/POPULATION_WEIGHTING.md](docs/POPULATION_WEIGHTING.md)
+---
 
-Common issues:
-- Missing population files → Run download script
-- Memory errors → Reduce parallel jobs
-- Different results → Verify config enabling
+## References
 
-## Related Issues & PRs
+- Center for International Earth Science Information Network (CIESIN), Columbia University. (2018). *Gridded Population of the World, Version 4 (GPWv4): Population Count, Revision 11*. NASA SEDAC. https://doi.org/10.7927/H4JW8BX5
 
-- Addresses need for exposure-weighted meteorological estimates
-- Complements seasonal aggregation (PR #23)
-- Enables epidemiological studies of weather-health relationships
+- Goodchild, M.F. & Lam, N.S.N. (1980). Areal interpolation: A variant of the traditional spatial problem. *Geo-Processing*, 1, 297–312.
+
+- Tobler, W.R. (1979). Smooth pycnophylactic interpolation for geographical regions. *Journal of the American Statistical Association*, 74(367), 519–530. https://doi.org/10.2307/2286968
