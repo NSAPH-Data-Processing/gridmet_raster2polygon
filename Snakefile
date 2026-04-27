@@ -18,7 +18,12 @@ datapaths = config["datapaths"]  # cannon_core or cannon_popweighted
 run_seasonal = config.get("run_seasonal", False)
 
 # == Load config as hydra with defaults ==
-overrides = [f"datapaths={datapaths}", f"shapefiles={shapefiles}"]
+population_weighting = datapaths == "cannon_popweighted"
+overrides = [
+    f"datapaths={datapaths}",
+    f"shapefiles={shapefiles}",
+    f"population.weighting.enabled={str(population_weighting).lower()}",
+]
 with hydra.initialize(version_base=None, config_path="conf"):
     hydra_cfg = hydra.compose(config_name="config", overrides=overrides)
 

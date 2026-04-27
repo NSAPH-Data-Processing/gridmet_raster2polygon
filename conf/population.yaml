@@ -5,8 +5,11 @@
 # - Population Count: https://doi.org/10.7910/DVN/C0LVYI
 
 # Population weighting configuration
+# When running via Snakemake, enabled is derived from datapaths
+# (cannon_popweighted → true, cannon_core → false) and this value is overridden.
+# Only relevant when invoking scripts directly (e.g. python src/aggregate_gridmet.py).
 weighting:
-  enabled: true  # Set to true to enable population weighting
+  enabled: false  # override with population.weighting.enabled=true on the CLI
   method: mean    # Options: mean (population-weighted mean)
 
 # Population Count Data Configuration
