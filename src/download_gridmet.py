@@ -11,7 +11,6 @@ def main(cfg):
     """
     Download GridMET rasters for a given year.
     """
-    # year
     desc = cfg.gridmet.variable_key[cfg.var]
     LOGGER.info(f"Downloading GridMET for year={cfg.year} var={desc} ({cfg.var})")
 
