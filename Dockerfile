@@ -14,7 +14,7 @@ RUN mamba env update -n base -f requirements.yaml
 #&& mamba clean -a
 
 # # Create paths to data placeholders
-RUN python utils/create_dir_paths.py
+RUN python src/create_dir_paths.py
 
 ENV PYTHONPATH=.
 
