@@ -1,6 +1,6 @@
 # Population Weighting: Implementation Reference
 
-This document describes the technical implementation of population-weighted aggregation in `gridmet_raster2polygon`. For scientific background, mathematical formulation, and citations, see [POPULATION_WEIGHTING.md](POPULATION_WEIGHTING.md).
+This document describes the technical implementation of population-weighted aggregation in `gridmet_raster2polygon`. For scientific background, mathematical formulation, and citations, see [population_weighting_method.md](population_weighting_method.md).
 
 ---
 
@@ -28,7 +28,7 @@ Stages 3–5 process weighted and unweighted outputs identically; the weighted m
 |------|---------|
 | `src/download_population.py` | Downloads GPWv4 population GeoTIFF from Harvard Dataverse; resolves nearest available census year; caches raw zip to avoid re-download |
 | `conf/population.yaml` | Configuration for population data sources, file mappings, and weighting toggle |
-| `docs/POPULATION_WEIGHTING.md` | Scientific background, mathematical formulation, citations, and usage guide |
+| `docs/population_weighting_method.md` | Scientific background, mathematical formulation, citations, and usage guide |
 
 ### Modified Files
 
@@ -46,7 +46,7 @@ Stages 3–5 process weighted and unweighted outputs identically; the weighted m
 
 ### `align_population_to_gridmet()` — `src/aggregate_gridmet.py`
 
-Reads the population GeoTIFF and reprojects it to exactly match the target gridMET grid (shape + affine transform). Uses nearest-neighbor resampling to preserve count integrity (see [resampling rationale](POPULATION_WEIGHTING.md#resampling-method-why-nearest-neighbor-for-population)).
+Reads the population GeoTIFF and reprojects it to exactly match the target gridMET grid (shape + affine transform). Uses nearest-neighbor resampling to preserve count integrity (see [resampling rationale](population_weighting_method.md#resampling-method-why-nearest-neighbor-for-population)).
 
 ```
 Input:  pop_path (GeoTIFF), gridmet_shape, gridmet_transform, gridmet_crs
