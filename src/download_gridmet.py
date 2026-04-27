@@ -15,12 +15,12 @@ def main(cfg):
     desc = cfg.gridmet.variable_key[cfg.var]
     LOGGER.info(f"Downloading GridMET for year={cfg.year} var={desc} ({cfg.var})")
 
-    geo_name = cfg.datapaths.name
     base_path = getattr(cfg.datapaths, 'base_path', None)
-    if geo_name is not None:
-        data_root = base_path or f"data/{geo_name}"
-    else:
+    dirs_cfg = cfg.datapaths.dirs
+    if hasattr(dirs_cfg, cfg.polygon_name):
         data_root = f"{base_path}/{cfg.polygon_name}"
+    else:
+        data_root = base_path or f"data/{cfg.polygon_name}"
     # download directory
     target_dir = f"{data_root}/input/raw"
 
