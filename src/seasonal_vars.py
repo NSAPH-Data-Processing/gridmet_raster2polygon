@@ -60,7 +60,7 @@ def main(cfg):
     conn = duckdb.connect()
     
     # Load current year data only
-    data_dir = Path(f"{data_root}/output/core/daily")
+    data_dir = Path(f"{data_root}/output/daily")
     current_year_file = data_dir / f"meteorology__gridmet__{polygon_name}_daily__{year}.parquet"
     
     if not current_year_file.exists():
