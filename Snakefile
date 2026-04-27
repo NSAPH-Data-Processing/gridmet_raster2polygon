@@ -15,6 +15,7 @@ years = list(range(config["years"][0], config["years"][1] + 1))
 vars = config["gridmet_vars"]
 shapefiles = config["shapefiles"]
 datapaths = config["datapaths"]  # cannon_core or cannon_popweighted
+run_seasonal = config.get("run_seasonal", False)
 
 # == Load config as hydra with defaults ==
 overrides = [f"datapaths={datapaths}", f"shapefiles={shapefiles}"]
@@ -41,13 +42,21 @@ if "PYTHONPATH" in os.environ:
 print(f"geo_name resolved to: {geo_name}")
 print(f"data_root resolved to: {data_root}")
 
+all_outputs = expand(
+    f"{data_root}/output/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
+    year=years,
+)
+
+if run_seasonal:
+    all_outputs += expand(
+        f"{data_root}/output/seasonal/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
+        year=years,
+    )
+
 # == Define rules ==
 rule all:
     input:
-        expand(
-            f"{data_root}/output/yearly/meteorology__gridmet__{shapefiles}_yearly__{{year}}.parquet",
-            year=years
-        ),
+        all_outputs,
 
 rule download_gridmet:
     output:

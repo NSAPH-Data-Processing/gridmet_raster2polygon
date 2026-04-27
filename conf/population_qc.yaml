@@ -10,7 +10,7 @@ polygon_name: county
 
 # Year range for QC.  Leave years as null to include all available years,
 # or supply a list, e.g. [2010, 2015, 2020]
-years: [2010, 2015, 2020]
+years: null
 
 # gridMET variable shortname (e.g. rmin, tmmx).
 # Set to null to loop over ALL variables present in both datasets.
