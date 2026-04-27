@@ -65,7 +65,7 @@ def main(cfg):
         TO '{data_root}/output/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet'
     """)
     
-    LOGGER.info(f"Outputted yearly stats table to '{data_root}/output/yearly/meteorology_{cfg.polygon_name}_yearly_{cfg.year}.parquet'")
+    LOGGER.info(f"Outputted yearly stats table to '{data_root}/output/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet'")
     conn.close()
 
 if __name__ == "__main__":
