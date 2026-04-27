@@ -3,8 +3,8 @@ defaults:
   - datapaths: cannon_popweighted  # cannon_core or cannon_popweighted
   - gridmet
   - population
-  - snakemake
   - seasons
+  - snakemake
   - shapefiles: zcta   # zcta, county
 # == aggregation args
 year: 2000
