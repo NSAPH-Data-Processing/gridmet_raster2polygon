@@ -110,14 +110,14 @@ Clone the repository and create a conda environment.
 git clone <https://github.com/<user>/repo>
 cd <repo>
 
-conda env create -f requirements.yml
-conda activate <env_name> #environment name as found in requirements.yml
+conda env create -f requirements.yaml
+conda activate <env_name> #environment name as found in requirements.yaml
 ```
 
 It is also possible to use `mamba`.
 
 ```bash
-mamba env create -f requirements.yml
+mamba env create -f requirements.yaml
 mamba activate <env_name>
 ```
 
@@ -193,7 +193,7 @@ Population counts are drawn from the Gridded Population of the World, Version 4 
 
 ### Documentation
 
-For full scientific background, methodological rationale, limitations, and usage instructions, see: **[docs/POPULATION_WEIGHTING.md](docs/POPULATION_WEIGHTING.md)**
+For full scientific background, methodological rationale, limitations, and usage instructions, see: **[docs/population_weighting_method.md](docs/population_weighting_method.md)**
 
 ### Selected References
 
