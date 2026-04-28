@@ -14,7 +14,7 @@ Inputs
 ------
 - weighted_dir   : directory of yearly parquets from a population-weighted
                    get_yearly.py run.
-                   Expected filename: meteorology__gridmet__{polygon}_yearly__{year}.parquet
+                   Expected filename: meteorology__gridmet__population_weighted__{polygon}_yearly__{year}.parquet
 - unweighted_dir : directory of yearly parquets from the core (unweighted)
                    get_yearly.py run (same filename pattern).
 - polygon_name   : geographic unit identifier column (e.g. county, zcta).
@@ -36,6 +36,7 @@ One 4-panel PNG per variable:
 import glob
 import logging
 import os
+from pathlib import Path
 
 import geopandas as gpd
 import hydra
@@ -43,7 +44,6 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from omegaconf import OmegaConf
 
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
@@ -66,10 +66,25 @@ VARIABLE_KEY = {
 # Data loading helpers
 # ---------------------------------------------------------------------------
 
-def _load_yearly_dir(directory: str, polygon_name: str, years: list = None) -> pd.DataFrame:
+def _infer_product_name_from_dir(directory: str) -> str:
+    for part in Path(directory).parts:
+        if part in {"core", "population_weighted", "seasonal"}:
+            return part
+    raise ValueError(
+        "Could not infer GridMET product from directory. "
+        "Set weighted_product_name or unweighted_product_name in population_qc.yaml."
+    )
+
+
+def _load_yearly_dir(
+    directory: str,
+    polygon_name: str,
+    product_name: str = None,
+    years: list = None,
+) -> pd.DataFrame:
     """
     Load all yearly parquets from *directory* matching the pattern
-    ``meteorology__gridmet__{polygon_name}_yearly__*.parquet``.
+    ``meteorology__gridmet__{product_name}__{polygon_name}_yearly__*.parquet``.
 
     Parameters
     ----------
@@ -81,7 +96,11 @@ def _load_yearly_dir(directory: str, polygon_name: str, years: list = None) -> p
     -------
     pd.DataFrame  (concatenated across all matched years)
     """
-    pattern = os.path.join(directory, f"meteorology__gridmet__{polygon_name}_yearly__*.parquet")
+    product_name = product_name or _infer_product_name_from_dir(directory)
+    pattern = os.path.join(
+        directory,
+        f"meteorology__gridmet__{product_name}__{polygon_name}_yearly__*.parquet",
+    )
     paths = sorted(glob.glob(pattern))
 
     if not paths:
@@ -253,10 +272,20 @@ def main(cfg):
     years = list(cfg.years) if cfg.years is not None else None
 
     LOGGER.info("Loading weighted yearly data...")
-    df_w = _load_yearly_dir(cfg.weighted_yearly_dir, cfg.polygon_name, years)
+    df_w = _load_yearly_dir(
+        cfg.weighted_yearly_dir,
+        cfg.polygon_name,
+        cfg.get("weighted_product_name", None),
+        years,
+    )
 
     LOGGER.info("Loading unweighted yearly data...")
-    df_u = _load_yearly_dir(cfg.unweighted_yearly_dir, cfg.polygon_name, years)
+    df_u = _load_yearly_dir(
+        cfg.unweighted_yearly_dir,
+        cfg.polygon_name,
+        cfg.get("unweighted_product_name", None),
+        years,
+    )
 
     # Resolve shapefile path the same way as aggregate_gridmet.py
     shapefile_nm = cfg.shapefile_prefix + str(cfg.shapefile_year)

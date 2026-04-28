@@ -2,6 +2,12 @@ import duckdb
 import hydra
 import os
 import logging
+from pathlib import Path
+
+try:
+    from src.gridmet_paths import data_root as resolve_data_root, final_output_path
+except ModuleNotFoundError:
+    from gridmet_paths import data_root as resolve_data_root, final_output_path
 
 # configure logger to print at info level
 logging.basicConfig(level=logging.INFO)
@@ -10,12 +16,10 @@ LOGGER = logging.getLogger(__name__)
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
 def main(cfg):
     gridmet_vars = cfg.snakemake.gridmet_vars
-    base_path = getattr(cfg.datapaths, 'base_path', None)
-    dirs_cfg = cfg.datapaths.dirs
-    if hasattr(dirs_cfg, cfg.polygon_name):
-        data_root = f"{base_path}/{cfg.polygon_name}"
-    else:
-        data_root = base_path or f"data/{cfg.polygon_name}"
+    data_root = resolve_data_root(cfg.datapaths, cfg.polygon_name)
+    daily_path = final_output_path(cfg.datapaths, cfg.polygon_name, "daily", cfg.year)
+    yearly_path = final_output_path(cfg.datapaths, cfg.polygon_name, "yearly", cfg.year)
+    Path(yearly_path).parent.mkdir(parents=True, exist_ok=True)
     conn = duckdb.connect()
 
     # Obtain yearly summary statistics
@@ -30,7 +34,7 @@ def main(cfg):
                 EXTRACT(YEAR FROM date) AS year,
                 {', '.join(gridmet_vars)}
             FROM 
-                '{data_root}/output/daily/meteorology__gridmet__{cfg.polygon_name}_daily__{cfg.year}.parquet'
+                '{daily_path}'
         )
     """)
 
@@ -62,10 +66,10 @@ def main(cfg):
                  FROM gridmet_yearly_stats
                  ORDER BY year, {cfg.polygon_name}
             ) 
-        TO '{data_root}/output/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet'
+        TO '{yearly_path}'
     """)
     
-    LOGGER.info(f"Outputted yearly stats table to '{data_root}/output/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet'")
+    LOGGER.info(f"Outputted yearly stats table to '{yearly_path}'")
     conn.close()
 
 if __name__ == "__main__":

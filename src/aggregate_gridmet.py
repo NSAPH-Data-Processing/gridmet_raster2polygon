@@ -7,12 +7,20 @@ import numpy as np
 import hydra
 import logging
 import matplotlib.pyplot as plt
+from pathlib import Path
 from scipy.ndimage import zoom
 from rasterio.warp import reproject, Resampling 
 from hydra.core.hydra_config import HydraConfig
 import sys
 sys.path.append('./')
 from utils.faster_zonal_stats import polygon_to_raster_cells, compute_zonal_stats
+from src.gridmet_paths import (
+    data_root as resolve_data_root,
+    intermediate_path,
+    population_output_path,
+    raw_gridmet_path,
+    shapefile_root,
+)
 
 
 # configure logger to print at info level
@@ -139,10 +147,7 @@ def load_population_weights(cfg, gridmet_shape, gridmet_transform, downscaling_f
 
     year = cfg.year
 
-    # Derive data_root (same logic as main() and download_population.py)
-    base_path = getattr(cfg.datapaths, 'base_path', None)
-
-    pop_path = f"{base_path}/population/output/world_population__sedac__world_yearly__{year}.tif"
+    pop_path = population_output_path(cfg.datapaths, year)
 
     try:
         LOGGER.info(f"Loading population count data from: {pop_path}")
@@ -179,14 +184,7 @@ def main(cfg):
     desc = cfg.gridmet.variable_key[cfg.var]
     LOGGER.info(f"Aggregating year={cfg.year} for var={desc} ({cfg.var})")
 
-    # Resolve data root path: consolidated configs (cannon_core, cannon_popweighted) nest
-    # data under base_path/{polygon_name}; single-geo configs use base_path directly.
-    base_path = getattr(cfg.datapaths, 'base_path', None)
-    dirs_cfg = cfg.datapaths.dirs
-    if hasattr(dirs_cfg, cfg.polygon_name):
-        data_root = f"{base_path}/{cfg.polygon_name}"
-    else:
-        data_root = base_path or f"data/{cfg.polygon_name}"
+    data_root = resolve_data_root(cfg.datapaths, cfg.polygon_name)
     LOGGER.info(f"Using data root: {data_root}")
 
     # load shapefile
@@ -195,11 +193,11 @@ def main(cfg):
     shapefile_year = available_shapefile_year(cfg.year, shapefile_years_list)
     shapefile_nm = cfg.shapefiles.prefix + str(shapefile_year)
 
-    shapefile_path = f"{data_root}/input/shapefiles/{shapefile_nm}/{shapefile_nm}.shp"
+    shapefile_path = str(Path(shapefile_root(cfg.datapaths, cfg.polygon_name)) / shapefile_nm / f"{shapefile_nm}.shp")
     polygon = gpd.read_file(shapefile_path)
     polygon_ids = polygon[cfg.shapefiles.idvar].values
 
-    raster_path = f"{data_root}/input/raw/{cfg.var}_{cfg.year}.nc"
+    raster_path = raw_gridmet_path(cfg.datapaths, cfg.polygon_name, cfg.var, cfg.year)
     ds = xarray.open_dataset(raster_path)
     layer_name = list(ds.keys())[0]
     layer = ds[layer_name]
@@ -282,8 +280,8 @@ def main(cfg):
 
     df = pd.concat(df_chunks)
 
-    output_filename = f"{cfg.var}_{cfg.year}_{cfg.polygon_name}.parquet"
-    output_path = f"{data_root}/intermediate/{output_filename}"
+    output_path = intermediate_path(cfg.datapaths, cfg.polygon_name, cfg.var, cfg.year)
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(output_path)
 
 

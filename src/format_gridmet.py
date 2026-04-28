@@ -2,6 +2,12 @@ import duckdb
 import hydra
 import os
 import logging
+from pathlib import Path
+
+try:
+    from src.gridmet_paths import data_root as resolve_data_root, final_output_path, intermediate_path
+except ModuleNotFoundError:
+    from gridmet_paths import data_root as resolve_data_root, final_output_path, intermediate_path
 
 # configure logger to print at info level
 logging.basicConfig(level=logging.INFO)
@@ -12,12 +18,9 @@ def main(cfg):
     # FLAG TO DISCUSS WITH GROUP
     #gridmet_vars = list(cfg.gridmet.variable_key.keys())
     gridmet_vars = cfg.snakemake.gridmet_vars
-    base_path = getattr(cfg.datapaths, 'base_path', None)
-    dirs_cfg = cfg.datapaths.dirs
-    if hasattr(dirs_cfg, cfg.polygon_name):
-        data_root = f"{base_path}/{cfg.polygon_name}"
-    else:
-        data_root = base_path or f"data/{cfg.polygon_name}"
+    data_root = resolve_data_root(cfg.datapaths, cfg.polygon_name)
+    output_path = final_output_path(cfg.datapaths, cfg.polygon_name, "daily", cfg.year)
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     LOGGER.info(f"Using data root: {data_root}")
     LOGGER.info(f"Joining GridMET variables")
@@ -32,7 +35,7 @@ def main(cfg):
                  day AS date, 
                  {gridmet_vars[0]}
             FROM
-                '{data_root}/intermediate/{gridmet_vars[0]}_{cfg.year}_{cfg.polygon_name}.parquet'
+                '{intermediate_path(cfg.datapaths, cfg.polygon_name, gridmet_vars[0], cfg.year)}'
             WHERE
                 {gridmet_vars[0]} IS NOT NULL
             )
@@ -48,7 +51,7 @@ def main(cfg):
                      day AS date, 
                      {var} 
                 FROM 
-                    '{data_root}/intermediate/{var}_{cfg.year}_{cfg.polygon_name}.parquet'
+                    '{intermediate_path(cfg.datapaths, cfg.polygon_name, var, cfg.year)}'
                 WHERE
                     {var} IS NOT NULL
                 )
@@ -75,7 +78,7 @@ def main(cfg):
                  FROM gridmet
                  ORDER BY date, {cfg.polygon_name}
             ) 
-        TO '{data_root}/output/daily/meteorology__gridmet__{cfg.polygon_name}_daily__{cfg.year}.parquet'
+        TO '{output_path}'
     """)
 
     # Clean up

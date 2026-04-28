@@ -21,10 +21,13 @@ var: null
 # -----------------------------------------------------------------------------
 
 # Yearly parquets from a population-weighted get_yearly.py run.
-# Expected filename: meteorology__gridmet__{polygon_name}_yearly__{year}.parquet
+# Expected filename:
+#   meteorology__gridmet__population_weighted__{polygon_name}_yearly__{year}.parquet
+weighted_product_name: population_weighted
 weighted_yearly_dir: data/population_weighted/${polygon_name}/output/yearly
 
 # Yearly parquets from the core (unweighted) get_yearly.py run.
+unweighted_product_name: core
 unweighted_yearly_dir: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/core/${polygon_name}_yearly
 
 # Path to the shapefile (.shp) used for spatial maps.
