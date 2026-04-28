@@ -1,9 +1,9 @@
 # Seasonal datapaths for all geographies on Cannon cluster
 # Usage: datapaths=cannon_core shapefiles=county (or zcta)
 # Geography is determined by the shapefiles config; both county and zcta
-# directory structures are created under base_path.
+# local directory structures are created under data/{base_path}.
 name: cannon_seasonal
-base_path: data/seasonal
+base_path: seasonal
 
 dirs:
   county:

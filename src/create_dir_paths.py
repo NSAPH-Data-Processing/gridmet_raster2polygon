@@ -3,16 +3,17 @@ import os
 import hydra
 from omegaconf import DictConfig
 
+try:
+    from src.gridmet_paths import local_base_path
+except ModuleNotFoundError:
+    from gridmet_paths import local_base_path
+
 LOGGER = logging.getLogger(__name__)
 
 def init_folder(datapath="data", folder_cfg=None):
     folder_dict = folder_cfg.dirs
 
-    # Use base_path if available (new pattern), otherwise fall back to data/{name}
-    if hasattr(folder_cfg, 'base_path') and folder_cfg.base_path is not None:
-        datapath = folder_cfg.base_path
-    elif folder_cfg.name is not None:
-        datapath = os.path.join(datapath, folder_cfg.name)
+    datapath = local_base_path(folder_cfg, data_dir=datapath)
 
     os.makedirs(datapath, exist_ok=True)
     LOGGER.info(f"Using base path: {datapath}")

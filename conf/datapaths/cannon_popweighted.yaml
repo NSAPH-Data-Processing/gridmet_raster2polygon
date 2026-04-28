@@ -1,9 +1,9 @@
 # Population-weighted datapaths for all geographies on Cannon cluster
 # Usage: datapaths=cannon_popweighted shapefiles=county (or zcta) population.weighting.enabled=true
 # Geography is determined by the shapefiles config; both county and zcta
-# directory structures are created under base_path.
+# local directory structures are created under data/{base_path}.
 name: cannon_popweighted
-base_path: data/population_weighted
+base_path: population_weighted
 
 dirs:
   population:

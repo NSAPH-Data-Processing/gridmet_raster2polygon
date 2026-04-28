@@ -1,9 +1,10 @@
 # Template for datapaths configuration.
 # Consolidated configs (cannon_core, cannon_popweighted) store all geographies
-# under a single base_path. When name is null, scripts use polygon_name to
-# determine the geography subdirectory under base_path.
+# under data/{base_path}. When name is null, scripts use polygon_name to
+# determine the geography subdirectory under data/{base_path}.
 name: null
-base_path: null  # e.g. data/core or data/population_weighted
+base_path: null  # e.g. core, population_weighted, seasonal; local path is data/{base_path}
+product_name: null  # optional override for final filename token; defaults to base_path
 
 dirs:
   population:

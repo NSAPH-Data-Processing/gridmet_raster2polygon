@@ -19,6 +19,11 @@ import zipfile
 from pathlib import Path
 from pyDataverse.api import NativeApi
 
+try:
+    from src.gridmet_paths import population_output_dir, population_output_path, population_raw_dir
+except ModuleNotFoundError:
+    from gridmet_paths import population_output_dir, population_output_path, population_raw_dir
+
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] - %(message)s')
 LOGGER = logging.getLogger(__name__)
 
@@ -44,12 +49,8 @@ def main(cfg):
 
     pop_config = population_cfg.count
 
-    # Derive data_root: consolidated configs (cannon_core, cannon_popweighted) nest data
-    # under base_path/{polygon_name}; single-geo configs use base_path directly.
-    base_path = getattr(cfg.datapaths, 'base_path', None)
-
-    raw_dir = f"{base_path}/population/input/raw"
-    output_dir = f"{base_path}/population/output"
+    raw_dir = population_raw_dir(cfg.datapaths)
+    output_dir = population_output_dir(cfg.datapaths)
     Path(raw_dir).mkdir(parents=True, exist_ok=True)
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
@@ -75,7 +76,7 @@ def main(cfg):
     tif_path_in_zip = file_info['files'][0]  # path of .tif inside the zip
 
     # Output .tif uses the REQUESTED year so each year has a unique file
-    output_path = Path(output_dir) / f"world_population__sedac__world_yearly__{year}.tif"
+    output_path = Path(population_output_path(cfg.datapaths, year))
 
     if output_path.exists():
         LOGGER.info(f"File already exists: {output_path}")
