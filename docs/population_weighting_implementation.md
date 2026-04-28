@@ -62,7 +62,7 @@ Grid identity check (`_same_grid()`): if the population raster already matches t
 
 ### `load_population_weights()` — `src/aggregate_gridmet.py`
 
-Wrapper that checks `cfg.population.weighting.enabled`, constructs the file path from `cfg.datapaths.base_path` and `cfg.year`, calls `align_population_to_gridmet()`, and returns the aligned weight array — or `None` if weighting is disabled or the file is missing.
+Wrapper that checks `cfg.population.weighting.enabled`, constructs the file path from `data/{cfg.datapaths.base_path}` and `cfg.year`, calls `align_population_to_gridmet()`, and returns the aligned weight array — or `None` if weighting is disabled or the file is missing.
 
 Returning `None` rather than raising an exception allows `compute_zonal_stats()` to fall back to unweighted aggregation, so a missing population file does not abort the entire pipeline run.
 

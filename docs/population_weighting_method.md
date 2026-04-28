@@ -152,7 +152,7 @@ done
 
 The script resolves the correct file from Harvard Dataverse, caches the raw zip, extracts the GeoTIFF, and saves it to:
 ```
-{base_path}/population/output/world_population__sedac__world_yearly__{year}.tif
+data/{base_path}/population/output/world_population__sedac__world_yearly__{year}.tif
 ```
 
 ### Step 2: Run Aggregation
@@ -174,8 +174,8 @@ python src/aggregate_gridmet.py year=2010 var=tmmx datapaths=cannon_popweighted 
 ```python
 import pandas as pd
 
-weighted   = pd.read_parquet("output/weighted/meteorology__gridmet__county_daily__2010.parquet")
-unweighted = pd.read_parquet("output/unweighted/meteorology__gridmet__county_daily__2010.parquet")
+weighted   = pd.read_parquet("data/population_weighted/county/output/daily/meteorology__gridmet__population_weighted__county_daily__2010.parquet")
+unweighted = pd.read_parquet("data/core/county/output/daily/meteorology__gridmet__core__county_daily__2010.parquet")
 
 # Expect larger divergence in heterogeneous urban counties
 nyc_diff   = weighted.loc['36061', 'tmmx'] - unweighted.loc['36061', 'tmmx']  # New York County
@@ -207,6 +207,8 @@ Output files follow the same naming convention and column schema as unweighted o
 
 ```
 {data_root}/intermediate/{var}_{year}_{polygon_name}.parquet
+{data_root}/output/daily/meteorology__gridmet__{product}__{polygon_name}_daily__{year}.parquet
+{data_root}/output/yearly/meteorology__gridmet__{product}__{polygon_name}_yearly__{year}.parquet
 ```
 
 Columns are identical (e.g., `tmmx`, `tmmn`, `pr`), but values represent population-weighted means when weighting is enabled. To maintain traceability, use separate `datapaths` configurations for weighted and unweighted runs (e.g., `cannon_popweighted` vs. `cannon_core`).
