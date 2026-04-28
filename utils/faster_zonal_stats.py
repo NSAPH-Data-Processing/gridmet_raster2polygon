@@ -97,3 +97,59 @@ def polygon_to_raster_cells(
             cell_map.append(indices)
 
         return cell_map
+
+
+def compute_zonal_stats(raster_values, cell_map, weights=None):
+    """
+    Compute zonal statistics for polygons using precomputed cell mapping.
+    
+    Parameters
+    ----------
+    raster_values : ndarray
+        2D array of raster values
+    cell_map : list
+        List of tuples containing indices for each polygon (from polygon_to_raster_cells)
+    weights : ndarray, optional
+        2D array of weights (e.g., population) matching raster dimensions.
+        If provided, computes weighted statistics.
+        
+    Returns
+    -------
+    list
+        List of computed statistics for each polygon
+    """
+    stats = []
+    
+    for indices in cell_map:
+        if len(indices[0]) == 0:
+            # No cells found for this polygon
+            stats.append(np.nan)
+            continue
+        
+        # Extract values for this polygon
+        cells = raster_values[indices]
+        
+        # Handle NaN values
+        valid_mask = ~np.isnan(cells)
+        
+        if not np.any(valid_mask):
+            stats.append(np.nan)
+            continue
+        
+        valid_cells = cells[valid_mask]
+        
+        if weights is not None:
+            # Weighted mean: sum(value * weight) / sum(weight)
+            cell_weights = weights[indices]
+            valid_weights = cell_weights[valid_mask]
+            if np.sum(valid_weights) > 0:
+                result = np.sum(valid_cells * valid_weights) / np.sum(valid_weights)
+            else:
+                result = np.nan
+        else:
+            # Unweighted mean
+            result = np.nanmean(valid_cells)
+        
+        stats.append(result)
+    
+    return stats

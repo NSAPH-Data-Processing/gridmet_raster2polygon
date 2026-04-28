@@ -3,6 +3,21 @@ import hydra
 import logging
 from pathlib import Path
 
+try:
+    from src.gridmet_paths import (
+        cfg_get,
+        final_output_path,
+        infer_product_name,
+        load_datapaths_config,
+    )
+except ModuleNotFoundError:
+    from gridmet_paths import (
+        cfg_get,
+        final_output_path,
+        infer_product_name,
+        load_datapaths_config,
+    )
+
 # Configure logger
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
@@ -11,7 +26,7 @@ LOGGER = logging.getLogger(__name__)
 def build_season_filter(season_name: str, season_config: dict, year: int) -> str:
     """
     Build a SQL WHERE clause filter for a season based on explicit month list.
-    
+
     Args:
         season_name: Name of the season (e.g., 'summer', 'winter')
         season_config: Dictionary with 'months' (list of month numbers)
@@ -41,21 +56,27 @@ def main(cfg):
     This function processes daily gridMET data to create seasonal averages
     based on the seasons defined in cfg.seasons configuration.
     """
-    geo_name = cfg.datapaths.name
     polygon_name = cfg.polygon_name
     gridmet_vars = cfg.snakemake.gridmet_vars
     year = cfg.year
     seasons = cfg.seasons
-    
-    LOGGER.info(f"Creating seasonal aggregates for {geo_name}, year {year}")
+    source_datapaths_name = cfg_get(cfg, "seasonal_source_datapaths", "cannon_core")
+    source_datapaths = load_datapaths_config(source_datapaths_name)
+    output_datapaths = cfg.datapaths
+    if infer_product_name(output_datapaths) != "seasonal":
+        output_datapaths_name = cfg_get(cfg, "seasonal_output_datapaths", "cannon_seasonal")
+        output_datapaths = load_datapaths_config(output_datapaths_name)
+    output_product = infer_product_name(output_datapaths)
+
+    LOGGER.info(f"Creating seasonal aggregates for {output_product}, year {year}")
+    LOGGER.info(f"Reading daily inputs from datapaths={source_datapaths_name}")
     LOGGER.info(f"Variables: {', '.join(gridmet_vars)}")
     LOGGER.info(f"Seasons configured: {', '.join(seasons.keys())}")
     
     conn = duckdb.connect()
     
-    # Load current year data only
-    data_dir = Path(f"data/{geo_name}/output/core/daily")
-    current_year_file = data_dir / f"meteorology__gridmet__{polygon_name}_daily__{year}.parquet"
+    # Load current year core daily data only
+    current_year_file = Path(final_output_path(source_datapaths, polygon_name, "daily", year))
     
     if not current_year_file.exists():
         LOGGER.error(f"Daily file not found for year {year}: {current_year_file}")
@@ -160,7 +181,8 @@ def main(cfg):
     LOGGER.info(f"\n{sample.to_string()}")
     
     # Write output to parquet file
-    output_path = f"data/{geo_name}/output/seasonal/yearly/meteorology__gridmet__{cfg.polygon_name}_yearly__{cfg.year}.parquet"
+    output_path = final_output_path(output_datapaths, polygon_name, "yearly", year)
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     LOGGER.info(f"Writing output to: {output_path}")
     conn.execute(f"""
         COPY seasonal_combined

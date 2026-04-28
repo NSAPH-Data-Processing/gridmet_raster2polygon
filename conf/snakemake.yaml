@@ -2,4 +2,5 @@
 gridmet_vars: [sph, vpd, tmmn, tmmx, pr, rmin, rmax, srad, vs, th]
 years: [2000, 2024]
 shapefiles: zcta  # zcta, county
-datapaths: zcta_cannon
+run_seasonal: true
+datapaths: cannon_popweighted  # cannon_core or cannon_popweighted

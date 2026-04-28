@@ -12,5 +12,5 @@ years:
   - 2022
   - 2023
   - 2024
-idvar: "GEOID"
-prefix: "us__shapefile__census__county_yearly__"
+idvar: "county"
+prefix: "us_shapefile__census__county_yearly__"

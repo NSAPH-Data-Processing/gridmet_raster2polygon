@@ -1,0 +1,42 @@
+# @package population
+# Population data configuration for population-weighted gridMET aggregation
+# 
+# Data source from Harvard Dataverse:
+# - Population Count: https://doi.org/10.7910/DVN/C0LVYI
+
+# Population weighting configuration
+# When running via Snakemake, enabled is derived from datapaths
+# (cannon_popweighted → true, cannon_core → false) and this value is overridden.
+# Only relevant when invoking scripts directly (e.g. python src/aggregate_gridmet.py).
+weighting:
+  enabled: false  # override with population.weighting.enabled=true on the CLI
+  method: mean    # Options: mean (population-weighted mean)
+
+# Population Count Data Configuration
+count:
+  doi: "doi:10.7910/DVN/C0LVYI"
+  description: "Annual population counts at grid cell level"
+  coverage: "Contiguous United States"
+  
+  # File mappings for different years
+  file_map:
+    2000:
+      filename: "gpw-v4-population-count-rev11_2000_2pt5_min_tif.zip"
+      files:
+        - "gpw_v4_population_count_rev11_2000_2pt5_min.tif"
+    2005:
+      filename: "gpw-v4-population-count-rev11_2005_2pt5_min_tif.zip"
+      files:
+        - "gpw_v4_population_count_rev11_2005_2pt5_min.tif"
+    2010:
+      filename: "gpw-v4-population-count-rev11_2010_2pt5_min_tif.zip"
+      files:
+        - "gpw_v4_population_count_rev11_2010_2pt5_min.tif"
+    2015:
+      filename: "gpw-v4-population-count-rev11_2015_2pt5_min_tif.zip"
+      files:
+        - "gpw_v4_population_count_rev11_2015_2pt5_min.tif"
+    2020:
+      filename: "gpw-v4-population-count-rev11_2020_2pt5_min_tif.zip"
+      files:
+        - "gpw_v4_population_count_rev11_2020_2pt5_min.tif"

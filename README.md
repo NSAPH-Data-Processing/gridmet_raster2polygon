@@ -37,24 +37,24 @@ The pipeline transforms gridMET raster data (NetCDF format) into aggregated poly
 ### 1. Download (`download_gridmet.py`)
 - Downloads raw gridMET NetCDF files from the [gridMET repository](https://www.climatologylab.org/gridmet.html)
 - One file per variable per year
-- **Output:** `data/{geo_name}/input/raw/{var}_{year}.nc`
+- **Output:** `data/{product}/{polygon_name}/input/raw/{var}_{year}.nc`
 
 ### 2. Aggregate (`aggregate_gridmet.py`)
 - Performs zonal statistics to aggregate raster grid cells to polygon boundaries (counties, ZCTAs, or custom shapefiles)
 - Uses weighted averages based on the overlap between grid cells and polygons
 - Processes each variable and year independently
-- **Output:** `data/{geo_name}/intermediate/{var}_{year}_{polygon_name}.parquet`
+- **Output:** `data/{product}/{polygon_name}/intermediate/{var}_{year}_{polygon_name}.parquet`
 
 ### 3. Format (`format_gridmet.py`)
 - Joins all meteorological variables into a single daily dataset
 - Ensures data consistency and removes null values
 - Creates a unified time series with all variables for each geographic unit
-- **Output:** `data/{geo_name}/output/daily/meteorology__gridmet__{polygon_name}_daily__{year}.parquet`
+- **Output:** `data/{product}/{polygon_name}/output/daily/meteorology__gridmet__{product}__{polygon_name}_daily__{year}.parquet`
 
 ### 4. Yearly Aggregates (`get_yearly.py`)
 - Calculates annual average for each meteorological variable
 - Groups by geographic unit (county/ZCTA/grid cell)
-- **Output:** `data/{geo_name}/output/yearly/meteorology__gridmet__{polygon_name}_yearly__{year}.parquet`
+- **Output:** `data/{product}/{polygon_name}/output/yearly/meteorology__gridmet__{product}__{polygon_name}_yearly__{year}.parquet`
 - **Columns:** `{polygon_name}`, `year`, and average values for each gridMET variable
 
 ### 5. Seasonal Aggregates (`seasonal_vars.py`)
@@ -64,7 +64,7 @@ The pipeline transforms gridMET raster data (NetCDF format) into aggregated poly
   - **Winter:** December, January, February (all from the same calendar year)
   - Additional seasons can be configured in `conf/seasons.yaml`
 - Each season's variables are suffixed with the season name (e.g., `tmmx_summer`, `pr_winter`)
-- **Output:** `data/{geo_name}/output/seasonal/meteorology__gridmet__{polygon_name}_seasonal__{year}.parquet`
+- **Output:** `data/seasonal/{polygon_name}/output/yearly/meteorology__gridmet__seasonal__{polygon_name}_yearly__{year}.parquet`
 - **Columns:** `{polygon_name}`, `year`, and seasonal averages (e.g., `tmmx_summer`, `tmmn_winter`, etc.)
 
 ## Output Files
@@ -72,17 +72,17 @@ The pipeline transforms gridMET raster data (NetCDF format) into aggregated poly
 All outputs are stored in Parquet format for efficient storage and fast querying:
 
 ### Daily Data
-- **Path:** `data/{geo_name}/output/daily/meteorology__gridmet__{polygon_name}_daily__{year}.parquet`
+- **Path:** `data/{product}/{polygon_name}/output/daily/meteorology__gridmet__{product}__{polygon_name}_daily__{year}.parquet`
 - **Granularity:** Daily values for each geographic unit
 - **Columns:** Geographic ID, date, and all 11 gridMET variables
 
 ### Yearly Data
-- **Path:** `data/{geo_name}/output/yearly/meteorology__gridmet__{polygon_name}_yearly__{year}.parquet`
+- **Path:** `data/{product}/{polygon_name}/output/yearly/meteorology__gridmet__{product}__{polygon_name}_yearly__{year}.parquet`
 - **Granularity:** Annual averages for each geographic unit
 - **Columns:** Geographic ID, year, and mean values for all 11 gridMET variables
 
 ### Seasonal Data
-- **Path:** `data/{geo_name}/output/seasonal/meteorology__gridmet__{polygon_name}_seasonal__{year}.parquet`
+- **Path:** `data/seasonal/{polygon_name}/output/yearly/meteorology__gridmet__seasonal__{polygon_name}_yearly__{year}.parquet`
 - **Granularity:** Seasonal averages for each geographic unit
 - **Columns:** Geographic ID, year, and season-specific mean values (e.g., `tmmx_summer`, `pr_winter`)
 
@@ -110,20 +110,20 @@ Clone the repository and create a conda environment.
 git clone <https://github.com/<user>/repo>
 cd <repo>
 
-conda env create -f requirements.yml
-conda activate <env_name> #environment name as found in requirements.yml
+conda env create -f requirements.yaml
+conda activate <env_name> #environment name as found in requirements.yaml
 ```
 
 It is also possible to use `mamba`.
 
 ```bash
-mamba env create -f requirements.yml
+mamba env create -f requirements.yaml
 mamba activate <env_name>
 ```
 
 ## Input and output paths
 
-Determine the configuration file to be used in `cfg.datapaths`. The `input`, `intermediate`, and `output` arguments are used in `utils/create_dir_paths.py` to fix the paths or directories from which a step in the pipeline reads/writes its input/output data inside the corresponding `/data` subfolders.
+Determine the configuration file to be used in `cfg.datapaths`. The `base_path` value is the product key used below `data/` and in final filenames, such as `core`, `population_weighted`, or `seasonal`. The `input`, `intermediate`, and `output` arguments are used in `utils/create_dir_paths.py` to fix the paths or directories from which a step in the pipeline reads/writes its input/output data inside the corresponding `/data/{base_path}` subfolders.
 
 If `cfg.datapaths` points to `<input_path>` or `<output_path>`, then `utils/create_dir_paths.py` will automatically create a symlink as in the following example:
 
@@ -157,6 +157,50 @@ It is also possible to run this script to aggregate based on your own custom sha
 ```
 NB: this pipeline expects shapefiles to be stored in paths of the form `{shapefile_prefix}_{shapefile_year}/{shapefile_prefix}_{shapefile_year}.shp`
 
+## Population Weighting (Optional)
+
+This pipeline supports **population-weighted aggregation** of gridMET variables. Simple spatial averages treat each grid cell equally regardless of how many people reside there; population-weighted aggregation instead computes:
+
+```
+weighted_mean = Σ(value_i × population_i) / Σ(population_i)
+```
+
+This approach is the methodological standard in climate-health epidemiology, where the goal is to characterize **human exposure** rather than areal coverage (Gasparrini et al., 2015; Zhao et al., 2021). It ensures that densely populated urban areas which tend to exhibit distinct microclimates from surrounding rural land contribute proportionally to their population share.
+
+Population counts are drawn from the Gridded Population of the World, Version 4 (GPWv4), Revision 11 (CIESIN, 2018) at 2.5 arc-minute (~4.6 km) resolution and are automatically aligned to the gridMET grid.
+
+### Quick Start
+
+1. **Enable population weighting** in `conf/population.yaml`:
+   ```yaml
+   weighting:
+     enabled: true
+   ```
+
+2. **Download population data**:
+   ```bash
+   python src/download_population.py population_type=count year=2010
+   ```
+
+3. **Run the pipeline** (weighting will be automatically applied):
+   ```bash
+   snakemake --cores 4
+   ```
+
+### Data Source
+
+- **Population Count (GPWv4 Rev. 11)**: https://doi.org/10.7910/DVN/C0LVYI
+
+### Documentation
+
+For full scientific background, methodological rationale, limitations, and usage instructions, see: **[docs/population_weighting_method.md](docs/population_weighting_method.md)**
+
+### Selected References
+
+- CIESIN (2018). *Gridded Population of the World, Version 4 (GPWv4): Population Count, Revision 11*. NASA SEDAC. https://doi.org/10.7927/H4JW8BX5
+- Gasparrini, A., et al. (2015). Mortality risk attributable to high and low ambient temperature: a multicountry observational study. *The Lancet*, 386(9991), 369–375. https://doi.org/10.1016/S0140-6736(14)62114-0
+- Zhao, Q., et al. (2021). Global, regional, and national burden of mortality associated with non-optimal ambient temperatures from 2000 to 2019. *Lancet Planetary Health*, 5(7), e415–e425. https://doi.org/10.1016/S2542-5196(21)00081-4
+
 ## Pipeline
 
 You can run the snakemake pipeline described in the Snakefile.
@@ -189,4 +233,3 @@ If you want to build your own image use from the Dockerfile int the GitHub repos
 ```bash
 docker build -t <image_name> .
 ```
-

@@ -1,0 +1,24 @@
+# Seasonal datapaths for all geographies on Cannon cluster
+# Usage: datapaths=cannon_core shapefiles=county (or zcta)
+# Geography is determined by the shapefiles config; both county and zcta
+# local directory structures are created under data/{base_path}.
+name: cannon_seasonal
+base_path: seasonal
+
+dirs:
+  county:
+    input:
+      raw: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/raw
+      shapefiles: /n/dominici_lab/lab/lego/geoboundaries/us_geoboundaries__census/us_shapefile__census/county_yearly
+    intermediate: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/seasonal/.county_daily__intermediate
+    output:
+      daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/seasonal/county_daily
+      yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/seasonal/county_yearly
+  zcta:
+    input:
+      raw: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/raw
+      shapefiles: /n/dominici_lab/lab/lego/geoboundaries/us_geoboundaries__census/us_shapefile__census/zcta_yearly
+    intermediate: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/seasonal/.zcta_daily__intermediate
+    output:
+      daily: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/seasonal/zcta_daily
+      yearly: /n/dominici_lab/lab/lego/environmental/meteorology__gridmet/seasonal/zcta_yearly
